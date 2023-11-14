@@ -11,13 +11,10 @@ nav:
   - Installation: installation.md
   - Examples:
       - Overview: examples/index.md
-      - Global Hook: examples/global.md
-      - Extended Trace: examples/globalextend.md
-      - Process the Exception: examples/process.md
-      - Fail-fast: examples/failfast.md
-  - Man Pages:
-      - Overview: man/index.md
-      - err: man/err.md
+      - Getting Private Key: examples/get_private_key.md
+      - Generating Certificate Signing Request: examples/get_csr.md
+      - Register ACME Account: examples/acme_register.md
+      - Signing Certificate: examples/acme_sign.md
   - Reference: reference/
   - Developers' Guide:
       - Developer's Environment: environment.md
@@ -57,6 +54,7 @@ theme:
   features:
     - navigation.tabs
     - navigation.tabs.sticky
+    - navigation.footer
 watch:
   - docs/
   - src/gufo/
