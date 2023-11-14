@@ -49,7 +49,7 @@ jobs:
         run: pip install --upgrade build
 
       - name: Install Dependencies
-        run: pip install -IU -r ./.requirements/lint.txt -r ./.requirements/test.txt -r ./.requirements/extras.txt
+        run: pip install -IU -r ./.requirements/deps.txt -r ./.requirements/lint.txt -r ./.requirements/test.txt
 
       - name: Check Formatting
         run: black --check examples/ src/ tests/
@@ -58,7 +58,7 @@ jobs:
         run: ruff -q examples/ src/ tests/
 
       - name: Check Mypy
-        run: mypy src/
+        run: mypy --strict src/
 
       - name: Run Tests
         run: coverage run -m pytest -v
