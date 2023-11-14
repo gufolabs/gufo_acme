@@ -11,13 +11,16 @@ import random
 from types import TracebackType
 from typing import (
     Any,
+    Coroutine,
     Dict,
     Iterable,
     List,
     Optional,
     Set,
     Type,
+    TypeVar,
     Union,
+    cast,
 )
 
 # Third-party modules
@@ -25,7 +28,13 @@ import httpx
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.hashes import SHA256
-from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    load_pem_private_key,
+)
+from cryptography.x509.oid import NameOID
 from josepy.errors import DeserializationError
 from josepy.json_util import decode_b64jose, encode_b64jose
 from josepy.jwa import RS256, JWASignature
@@ -52,6 +61,7 @@ from .log import logger
 from .types import ACMEAuthorization, ACMEChallenge, ACMEDirectory, ACMEOrder
 
 BAD_REQUEST = 400
+T = TypeVar("T")
 
 
 class ACMEClient(object):
@@ -193,6 +203,13 @@ class ACMEClient(object):
             http2=True, headers={"User-Agent": self.user_agent}
         )
 
+    @staticmethod
+    async def _wait_for(fut: Coroutine[Any, Any, T], timeout: float) -> T:
+        try:
+            return await asyncio.wait_for(fut, timeout)
+        except asyncio.TimeoutError as e:
+            raise ACMETimeoutError from e
+
     async def _get_directory(self: "ACMEClient") -> ACMEDirectory:
         """
         Get and ACME directory.
@@ -214,11 +231,9 @@ class ACMEClient(object):
                     "Fetching ACME directory from %s", self.directory_url
                 )
                 try:
-                    r = await asyncio.wait_for(
+                    r = await self._wait_for(
                         client.get(self.directory_url), self.timeout
                     )
-                except asyncio.TimeoutError as e:
-                    raise ACMETimeoutError from e
                 except httpx.HTTPError as e:
                     raise ACMEConnectError from e
                 self._check_response(r)
@@ -497,7 +512,7 @@ class ACMEClient(object):
         Args:
             auth: ACME Authorization
         """
-        for _ in range(10):  # @todo: Replace with timeout
+        while True:
             logger.warning("Polling authorization for %s", auth.domain)
             self._check_bound()
             resp = await self._post(auth.url, None)
@@ -513,8 +528,6 @@ class ACMEClient(object):
             else:
                 msg = f"Status is {status}"
                 raise ACMEAuthorizationError(msg)
-        msg = "Too many polls"
-        raise ACMEAuthorizationError(msg)
 
     @staticmethod
     async def _random_delay(limit: float) -> None:
@@ -644,19 +657,13 @@ class ACMEClient(object):
             else:
                 raise ACMEFullfillmentFailed
             # Wait for authorization became valid
-            try:
-                await asyncio.wait_for(self.wait_for_authorization(auth), 60.0)
-            except asyncio.TimeoutError as e:
-                raise ACMETimeoutError from e
+            await self._wait_for(self.wait_for_authorization(auth), 60.0)
             # Clear challenge
             await self.clear_challenge(domain, fulfilled_challenge)
         # Finalize order and get certificate
-        try:
-            return await asyncio.wait_for(
-                self.finalize_and_wait(order, csr=csr), 60.0
-            )
-        except asyncio.TimeoutError as e:
-            raise ACMETimeoutError from e
+        return await self._wait_for(
+            self.finalize_and_wait(order, csr=csr), 60.0
+        )
 
     async def _head(self: "ACMEClient", url: str) -> httpx.Response:
         """
@@ -677,12 +684,10 @@ class ACMEClient(object):
         logger.warning("HEAD %s", url)
         async with self._get_client() as client:
             try:
-                r = await asyncio.wait_for(
+                r = await self._wait_for(
                     client.head(url),
                     self.timeout,
                 )
-            except asyncio.TimeoutError as e:
-                raise ACMETimeoutError from e
             except httpx.HTTPError as e:
                 raise ACMEConnectError from e
             self._check_response(r)
@@ -745,7 +750,7 @@ class ACMEClient(object):
         jws = self._to_jws(data, nonce=nonce, url=url)
         async with self._get_client() as client:
             try:
-                resp = await asyncio.wait_for(
+                resp = await self._wait_for(
                     client.post(
                         url,
                         content=jws,
@@ -755,8 +760,6 @@ class ACMEClient(object):
                     ),
                     self.timeout,
                 )
-            except asyncio.TimeoutError as e:
-                raise ACMETimeoutError from e
             except httpx.HTTPError as e:
                 raise ACMEConnectError from e
             self._check_response(resp)
@@ -1070,3 +1073,59 @@ class ACMEClient(object):
                 encode_b64jose(self.key.thumbprint(hash_function=SHA256)),
             ]
         ).encode()
+
+    @staticmethod
+    def get_domain_private_key(key_size: int = 4096) -> bytes:
+        """
+        Generate private key for domain in PEM format.
+
+        Args:
+            key_size: RSA key size.
+
+        Returns:
+            Private key in PEM format.
+        """
+        # Generate private key
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=key_size,
+        )
+        return private_key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=NoEncryption(),
+        )
+
+    @staticmethod
+    def get_domain_csr(domain: str, private_key: bytes) -> bytes:
+        """
+        Generate CSR for domain in PEM format.
+
+        Args:
+            domain: Domain name.
+            private_key: Private key in PEM format.
+                `get_domain_private_key` may be used
+                to generate one.
+
+        Returns:
+            CSR in PEM format.
+        """
+        # Read private key
+        pk = cast(
+            rsa.RSAPrivateKey,
+            load_pem_private_key(private_key, password=None, backend=None),
+        )
+        # Generate CSR
+        csr = (
+            x509.CertificateSigningRequestBuilder()
+            .subject_name(
+                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, domain)])
+            )
+            .add_extension(
+                x509.BasicConstraints(ca=False, path_length=None),
+                critical=True,
+            )
+            .sign(pk, algorithm=SHA256())
+        )
+        # Convert CSR to PEM format
+        return csr.public_bytes(encoding=Encoding.PEM)

@@ -14,11 +14,6 @@ from typing import Any, Dict, List, Union
 # Third-party modules
 import httpx
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives.hashes import SHA256
-from cryptography.x509.oid import NameOID
 
 # CSR Proxy modules
 from gufo.acme.client import ACMEClient
@@ -27,9 +22,11 @@ from gufo.acme.error import (
     ACMEBadNonceError,
     ACMEConnectError,
     ACMEError,
+    ACMEFullfillmentFailed,
     ACMENotRegistredError,
     ACMERateLimitError,
     ACMETimeoutError,
+    ACMEUnauthorizedError,
     ACMEUndecodableError,
 )
 from gufo.acme.types import ACMEChallenge
@@ -152,22 +149,23 @@ def test_already_registered() -> None:
 class BlackholeHttpClient(object):
     """An http client that always timed out."""
 
-    async def __aenter__(self) -> "BlackholeHttpClient":
+    async def __aenter__(self: "BlackholeHttpClient") -> "BlackholeHttpClient":
+        """Asynchronous context manager entry."""
         return self
 
     async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:
-        pass
+        """Asynchronous context manager exit."""
 
     async def _blackhole(self) -> None:
         await asyncio.sleep(100.0)
 
-    async def get(self, url: str, *args, **kwargs):
+    async def get(self, url: str, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
-    async def head(self, url: str, *args, **kwargs):
+    async def head(self, url: str, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
-    async def post(self, url: str, *args, **kwargs):
+    async def post(self, url: str, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
 
@@ -175,22 +173,23 @@ class BuggyHttpClient(object):
     """An http client that always raises ConnectError."""
 
     async def __aenter__(self) -> "BuggyHttpClient":
+        """Asynchronous context manager entry."""
         return self
 
-    async def __aexit__(self, exc_t, exc_v, exc_tb):
-        pass
+    async def __aexit__(self, exc_t, exc_v, exc_tb) -> None:
+        """Asynchronous context manager exit."""
 
     async def _blackhole(self):
         msg = "Connection failed"
         raise ConnectError(msg)
 
-    async def get(self, url, *args, **kwargs):
+    async def get(self, url, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
-    async def head(self, url, *args, **kwargs):
+    async def head(self, url, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
-    async def post(self, url, *args, **kwargs):
+    async def post(self, url, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
 
 
@@ -343,6 +342,10 @@ def test_check_response_err_no_json() -> None:
             {"type": "urn:ietf:params:acme:error:badSignatureAlgorithm"},
             ACMEError,
         ),
+        (
+            {"type": "urn:ietf:params:acme:error:unauthorized"},
+            ACMEUnauthorizedError,
+        ),
     ],
 )
 def test_check_response_err(j, etype):
@@ -481,6 +484,12 @@ class ACMESigner(ACMEClient):
                 raise ACMEError(msg)
 
 
+def get_csr_pem(domain: str) -> bytes:
+    """Generate CSR for domain in PEM format."""
+    private_key = ACMEClient.get_domain_private_key()
+    return ACMEClient.get_domain_csr(domain, private_key)
+
+
 ENV_CI_ACME_TEST_DOMAIN = "CI_ACME_TEST_DOMAIN"
 ENV_CI_ACME_TEST_USER = "CI_ACME_TEST_USER"
 ENV_CI_ACME_TEST_USERKEY = "CI_ACME_TEST_PASS"
@@ -501,25 +510,7 @@ def to_skip_scenario() -> bool:
 )
 def test_sign():
     async def inner():
-        # Generate private key
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=4096,
-        )
-        # Generate CSR
-        csr = (
-            x509.CertificateSigningRequestBuilder()
-            .subject_name(
-                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, domain)])
-            )
-            .add_extension(
-                x509.BasicConstraints(ca=False, path_length=None),
-                critical=True,
-            )
-            .sign(private_key, algorithm=SHA256())
-        )
-        # Convert CSR to PEM format
-        csr_pem = csr.public_bytes(encoding=serialization.Encoding.PEM)
+        csr_pem = get_csr_pem(domain)
         #
         pk = ACMEClient.get_key()
         async with ACMESigner(DIRECTORY, key=pk) as client:
@@ -536,3 +527,55 @@ def test_sign():
 
     domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
     asyncio.run(inner())
+
+
+@pytest.mark.skipif(
+    to_skip_scenario(),
+    reason=f"{ENV_CI_ACME_TEST_DOMAIN}, {ENV_CI_ACME_TEST_USER}, {ENV_CI_ACME_TEST_USERKEY}"
+    " variables must be set",
+)
+def test_sign_no_fullfilment():
+    async def inner():
+        csr_pem = get_csr_pem(domain)
+        #
+        pk = ACMEClient.get_key()
+        async with ACMEClient(DIRECTORY, key=pk) as client:
+            # Register account
+            uri = await client.new_account(EMAIL)
+            assert uri
+            # Create new order
+            with pytest.raises(ACMEFullfillmentFailed):
+                await client.sign(domain, csr_pem)
+            # Deactivate account
+            await client.deactivate_account()
+
+    domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
+    asyncio.run(inner())
+
+
+@pytest.mark.parametrize(
+    "ch_type", ["http-01", "dns-01", "tls-alpn-01", "invalid"]
+)
+def test_default_fullfilment(ch_type: str) -> None:
+    chall = ACMEChallenge(type=ch_type, url="", token="")
+    client = ACMEClient(DIRECTORY, key=KEY)
+    r = asyncio.run(client.fulfill_challenge("example.com", chall))
+    assert r is False
+
+
+@pytest.mark.parametrize(
+    "ch_type", ["http-01", "dns-01", "tls-alpn-01", "invalid"]
+)
+def test_default_clear(ch_type: str) -> None:
+    chall = ACMEChallenge(type=ch_type, url="", token="")
+    client = ACMEClient(DIRECTORY, key=KEY)
+    asyncio.run(client.clear_challenge("example.com", chall))
+
+
+def test_get_csr() -> None:
+    private_key = ACMEClient.get_domain_private_key()
+    assert b"BEGIN RSA PRIVATE KEY" in private_key
+    assert b"END RSA PRIVATE KEY" in private_key
+    csr = ACMEClient.get_domain_csr("example.com", private_key)
+    assert b"BEGIN CERTIFICATE REQUEST" in csr
+    assert b"END CERTIFICATE REQUEST" in csr
