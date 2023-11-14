@@ -80,6 +80,7 @@ async with SignACMEClient.from_state(state) as client:
 
 * Pure-Python implementation.
 * Asynchronous.
+* Fully typed.
 * Clean API.
 * Robust well-tested code.
 * 97%+ test coverage.
