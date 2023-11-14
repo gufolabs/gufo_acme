@@ -522,8 +522,8 @@ def test_sign():
             # Deactivate account
             await client.deactivate_account()
         assert cert
-        assert "BEGIN CERTIFICATE" in cert
-        assert "END CERTIFICATE" in cert
+        assert b"BEGIN CERTIFICATE" in cert
+        assert b"END CERTIFICATE" in cert
 
     domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
     asyncio.run(inner())
@@ -579,3 +579,25 @@ def test_get_csr() -> None:
     csr = ACMEClient.get_domain_csr("example.com", private_key)
     assert b"BEGIN CERTIFICATE REQUEST" in csr
     assert b"END CERTIFICATE REQUEST" in csr
+
+
+def test_state1() -> None:
+    client = ACMEClient(DIRECTORY, key=KEY)
+    state = client.get_state()
+    client2 = ACMEClient.from_state(state)
+    assert client is not client2
+    assert client.directory == client2.directory
+    assert client.key == client2.key
+    assert client2.account_url is None
+
+
+def test_state2() -> None:
+    client = ACMEClient(
+        DIRECTORY, key=KEY, account_url="https://127.0.0.1/acc"
+    )
+    state = client.get_state()
+    client2 = ACMEClient.from_state(state)
+    assert client is not client2
+    assert client.directory == client2.directory
+    assert client.key == client2.key
+    assert client.account_url == client2.account_url

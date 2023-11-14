@@ -560,7 +560,7 @@ class ACMEClient(object):
 
     async def finalize_and_wait(
         self: "ACMEClient", order: ACMEOrder, *, csr: bytes
-    ) -> str:
+    ) -> bytes:
         """
         Send finalization request and wait for the certificate.
 
@@ -599,9 +599,9 @@ class ACMEClient(object):
             if status == "valid":
                 logger.warning("Order is ready. Downloading certificate")
                 resp = await self._post(data["certificate"], None)
-                return resp.text
+                return resp.text.encode()
 
-    async def sign(self: "ACMEClient", domain: str, csr: bytes) -> str:
+    async def sign(self: "ACMEClient", domain: str, csr: bytes) -> bytes:
         """
         Sign the CSR and get a certificate for domain.
 
@@ -1129,3 +1129,44 @@ class ACMEClient(object):
         )
         # Convert CSR to PEM format
         return csr.public_bytes(encoding=Encoding.PEM)
+
+    def get_state(self: "ACMEClient") -> bytes:
+        """
+        Serialize the state of client to a stream of bytes.
+
+        The state will contain all necessasy information
+        to instantiate the new client by the
+        `ACMEClient.from_state(...)`
+
+        Return:
+            State of the client as a stream of bytes
+        """
+        state = {
+            "directory": self.directory_url,
+            "key": self.key.fields_to_partial_json(),
+        }
+        if self.account_url is not None:
+            state["account_url"] = self.account_url
+        return json.dumps(state, indent=2).encode()
+
+    @classmethod
+    def from_state(cls: Type["ACMEClient"], state: bytes) -> "ACMEClient":
+        """
+        Restore ACMEClient from the state.
+
+        Restore the state of client from result of
+        [ACMEClient.get_state][gufo.acme.client.ACMEClient.get_state]
+        call.
+
+        Args:
+            state: Stored state.
+
+        Returns:
+            New ACMEClient instance.
+        """
+        s = json.loads(state)
+        return ACMEClient(
+            s["directory"],
+            key=JWKRSA.fields_from_json(s["key"]),
+            account_url=s.get("account_url"),
+        )
