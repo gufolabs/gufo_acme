@@ -496,10 +496,10 @@ ENV_CI_ACME_TEST_USERKEY = "CI_ACME_TEST_PASS"
 
 
 def to_skip_scenario() -> bool:
-    return (
-        os.environ.get(ENV_CI_ACME_TEST_DOMAIN) is None
-        or os.environ.get(ENV_CI_ACME_TEST_USER) is None
-        or os.environ.get(ENV_CI_ACME_TEST_USERKEY) is None
+    return not (
+        os.environ.get(ENV_CI_ACME_TEST_DOMAIN)
+        and os.environ.get(ENV_CI_ACME_TEST_USER)
+        and os.environ.get(ENV_CI_ACME_TEST_USERKEY)
     )
 
 
