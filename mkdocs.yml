@@ -52,6 +52,7 @@ theme:
         icon: material/weather-night
         name: Switch to light mode
   features:
+    - content.action.edit
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.footer
