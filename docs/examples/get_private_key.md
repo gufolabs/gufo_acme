@@ -69,7 +69,7 @@ python3 examples/get_private_key.py /tmp/key.pem
 
 Check the `/tmp/key.pem` file:
 
-```
+``` title="/tmp/key.pem"
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKgIBAAKCAgEA260eTqE2jOhIMW0b9AQn08KbGMbJJGPKfAhxBfa0MIQ7g8Tb
 50tWbnK+NTdEAHZCfvfwpieVDgrwVNlPW5sL14xPltJ3zcQRydJTOFpV/WImtd6j

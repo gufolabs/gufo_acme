@@ -125,7 +125,7 @@ python3 examples/acme_register.py mymail@mydomain.com /tmp/acme.json
 
 Check the `/tmp/acme.json` file:
 
-```
+``` title="/tmp/acme.json"
 {
   "directory": "https://acme-staging-v02.api.letsencrypt.org/directory",
   "key": {

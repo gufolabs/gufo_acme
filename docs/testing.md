@@ -67,6 +67,101 @@ for typing errors run:
 $ mypy --strict src/
 ```
 
+## Preparing a Testing Environment
+
+The Gufo ACME test suite includes a real-world scenario for signing a certificate
+using the Letsencrypt staging environment.
+
+Gufo Labs provides all the necessary infrastructure
+to run tests in the CI environment. On local environments, the test is skipped by default.
+
+To enable the test in your local environment, additional
+infrastructure is needed.
+
+1. Have control over a DNS zone (later `<mydomain>`).
+2. Set up an Nginx server.
+
+Start by creating a testing `A` record (e.g., `acme-ci`), pointing
+to your Nginx server.
+
+```
+acme-ci IN A <nginx ip>
+```
+
+Next, prepare a configuration file and place it in your
+Nginx config directory (`/etc/nginx/conf.d/acme-ci`,
+depending on your distribution).
+
+``` title="/etc/nginx/conf.d/acme-ci"
+server {
+  listen 80;
+  server_name acme-ci.<domain>;
+  access_log  /var/log/nginx/acme-ci.<domain>.access.log timed_upstream;
+  error_log  /var/log/nginx/acme-ci.<domain>.error.log;
+  
+  location /.well-known/acme-challenge/ {
+    alias /www/acme-ci/;
+    dav_methods PUT DELETE;
+    limit_except GET {
+    auth_basic "Staging area";
+    auth_basic_user_file "/etc/nginx/auth/acme-ci"; 
+    }
+  }
+}
+```
+
+Then create a directory for tokens
+
+```
+mkdir /www/acme-ci
+chmod 700 /www/acme-ci
+chown nginx /www/acme-ci
+```
+
+After that, prepare a password for authorization:
+
+Create a separate directory:
+
+```
+mkdir /etc/nginx/auth
+```
+
+Generate a password:
+```
+openssl rand 21 | base64
+```
+And remember it.
+
+Then create a password file, replacing <user> and <password>
+with the desired username and the generated password.
+
+```
+htpasswd -b /etc/nginx/auth/acme-ci <user> <password>
+```
+
+Finally, reload and Nginx:
+
+```
+service nginx reload
+```
+
+Check the setup:
+
+```
+curl -X PUT -d "777" --user "<user>:<password>" http://acme-ci.<domain>/.well-known/acme-challenge/777
+```
+
+The file /www/acme-ci/777 should appear.
+
+Your environment is now ready. Before running the test suite, execute the following
+commands in your development environment:
+
+```
+export CI_ACME_TEST_DOMAIN=acme-ci.<domain>
+export CI_ACME_TEST_USER=<user>
+export CI_ACME_TEST_PASS=<password>
+```
+
 ## Python Test Code Coverage Check
 
 To evaluate code coverage run tests:

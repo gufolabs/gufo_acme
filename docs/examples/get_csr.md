@@ -88,7 +88,7 @@ python3 examples/get_csr.py example.com /tmp/key.pem /tmp/csr.pem
 
 Check the `/tmp/csr.pem` file:
 
-```
+``` title="/tmp/csr.pem"
 -----BEGIN CERTIFICATE REQUEST-----
 MIIEejCCAmICAQAwFjEUMBIGA1UEAwwLZXhhbXBsZS5jb20wggIiMA0GCSqGSIb3
 DQEBAQUAA4ICDwAwggIKAoICAQDbrR5OoTaM6EgxbRv0BCfTwpsYxskkY8p8CHEF

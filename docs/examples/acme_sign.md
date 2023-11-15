@@ -18,7 +18,7 @@ made it available via well-known URL like
 We consider you have a Nginx server set up and running
 with config like this:
 
-```
+``` title="/etc/nginx/conf.d/<domain>"
 server {
   listen 80;
   server_name <domain>;
@@ -231,7 +231,7 @@ python3 examples/acme_sign.py /tmp/acme.json mydomain.com /tmp/csr.pem /tmp/cert
 
 Check the `/tmp/cert.pem` file:
 
-```
+``` title="/tmp/cert.pem"
 -----BEGIN CERTIFICATE-----
 MIIFZTCCA00CFGMFCNLNSJLkcnJn4XJUGhtHh5JXMA0GCSqGSIb3DQEBCwUAMG8x
 CzAJBgNVBAYTAklUMQ8wDQYDVQQIDAZNaWxhbm8xDzANBgNVBAcMBk1pbGFubzES
