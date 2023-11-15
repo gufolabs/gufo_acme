@@ -122,16 +122,14 @@ class ACMEClient(object):
         timeout: Optional[float] = None,
         user_agent: Optional[str] = None,
     ) -> None:
-        self.directory_url = directory_url
-        self.directory_lock = asyncio.Lock()
-        self.directory: Optional[ACMEDirectory] = None
-        self.key = key
-        self.alg = alg
-        self.account_url = account_url
-        self.nonces: Set[bytes] = set()
-        self.nonce_lock = asyncio.Lock()
-        self.timeout = timeout or self.DEFAULT_TIMEOUT
-        self.user_agent = user_agent or f"Gufo ACME/{__version__}"
+        self._directory_url = directory_url
+        self._directory: Optional[ACMEDirectory] = None
+        self._key = key
+        self._alg = alg
+        self._account_url = account_url
+        self._nonces: Set[bytes] = set()
+        self._timeout = timeout or self.DEFAULT_TIMEOUT
+        self._user_agent = user_agent or f"Gufo ACME/{__version__}"
 
     async def __aenter__(self: "ACMEClient") -> "ACMEClient":
         """
@@ -167,7 +165,7 @@ class ACMEClient(object):
             True - if the client is bound to account,
                 False - otherwise.
         """
-        return self.account_url is not None
+        return self._account_url is not None
 
     def _check_bound(self: "ACMEClient") -> None:
         """
@@ -200,7 +198,7 @@ class ACMEClient(object):
             Async HTTP client instance.
         """
         return httpx.AsyncClient(
-            http2=True, headers={"User-Agent": self.user_agent}
+            http2=True, headers={"User-Agent": self._user_agent}
         )
 
     @staticmethod
@@ -223,27 +221,26 @@ class ACMEClient(object):
         Raises:
             ACMEError: In case of the errors.
         """
-        async with self.directory_lock:
-            if self.directory is not None:
-                return self.directory
-            async with self._get_client() as client:
-                logger.warning(
-                    "Fetching ACME directory from %s", self.directory_url
-                )
-                try:
-                    r = await self._wait_for(
-                        client.get(self.directory_url), self.timeout
-                    )
-                except httpx.HTTPError as e:
-                    raise ACMEConnectError from e
-                self._check_response(r)
-                data = r.json()
-            self.directory = ACMEDirectory(
-                new_account=data["newAccount"],
-                new_nonce=data.get("newNonce"),
-                new_order=data["newOrder"],
+        if self._directory is not None:
+            return self._directory
+        async with self._get_client() as client:
+            logger.warning(
+                "Fetching ACME directory from %s", self._directory_url
             )
-            return self.directory
+            try:
+                r = await self._wait_for(
+                    client.get(self._directory_url), self._timeout
+                )
+            except httpx.HTTPError as e:
+                raise ACMEConnectError from e
+            self._check_response(r)
+            data = r.json()
+        self._directory = ACMEDirectory(
+            new_account=data["newAccount"],
+            new_nonce=data.get("newNonce"),
+            new_order=data["newOrder"],
+        )
+        return self._directory
 
     @staticmethod
     def _email_to_contacts(email: Union[str, Iterable[str]]) -> List[str]:
@@ -313,8 +310,8 @@ class ACMEClient(object):
                 "contact": contacts,
             },
         )
-        self.account_url = resp.headers["Location"]
-        return self.account_url
+        self._account_url = resp.headers["Location"]
+        return self._account_url
 
     async def deactivate_account(self: "ACMEClient") -> None:
         """
@@ -345,16 +342,16 @@ class ACMEClient(object):
             ACMEError: In case of the errors.
             ACMENotRegistred: If the client is not bound to account.
         """
-        logger.warning("Deactivating account: %s", self.account_url)
+        logger.warning("Deactivating account: %s", self._account_url)
         # Check account is really bound
         self._check_bound()
         # Send deactivation request
         await self._post(
-            self.account_url,  # type: ignore
+            self._account_url,  # type: ignore
             {"status": "deactivated"},
         )
         # Unbind client
-        self.account_url = None
+        self._account_url = None
 
     @staticmethod
     def _domain_to_identifiers(
@@ -686,7 +683,7 @@ class ACMEClient(object):
             try:
                 r = await self._wait_for(
                     client.head(url),
-                    self.timeout,
+                    self._timeout,
                 )
             except httpx.HTTPError as e:
                 raise ACMEConnectError from e
@@ -758,7 +755,7 @@ class ACMEClient(object):
                             "Content-Type": self.JOSE_CONTENT_TYPE,
                         },
                     ),
-                    self.timeout,
+                    self._timeout,
                 )
             except httpx.HTTPError as e:
                 raise ACMEConnectError from e
@@ -780,13 +777,13 @@ class ACMEClient(object):
         Returns:
             nonce value as bytes.
         """
-        if not self.nonces:
+        if not self._nonces:
             d = await self._get_directory()
             nonce_url = url if d.new_nonce is None else d.new_nonce
             logger.warning("Fetching nonce from %s", nonce_url)
             resp = await self._head(nonce_url)
             self._check_response(resp)
-        return self.nonces.pop()
+        return self._nonces.pop()
 
     def _nonce_from_response(self: "ACMEClient", resp: httpx.Response) -> None:
         """
@@ -806,10 +803,10 @@ class ACMEClient(object):
         try:
             logger.warning("Registering new nonce %s", nonce)
             b_nonce = decode_b64jose(nonce)
-            if b_nonce in self.nonces:
+            if b_nonce in self._nonces:
                 msg = "Duplicated nonce"
                 raise ACMEError(msg)
-            self.nonces.add(b_nonce)
+            self._nonces.add(b_nonce)
         except DeserializationError as e:
             logger.error("Bad nonce: %s", e)
             raise ACMEBadNonceError from e
@@ -834,11 +831,11 @@ class ACMEClient(object):
         """
         return AcmeJWS.sign(
             json.dumps(data, indent=2).encode() if data is not None else b"",
-            alg=self.alg,
+            alg=self._alg,
             nonce=nonce,
             url=url,
-            key=self.key,
-            kid=self.account_url,
+            key=self._key,
+            kid=self._account_url,
         ).json_dumps(indent=2)
 
     @staticmethod
@@ -1070,7 +1067,7 @@ class ACMEClient(object):
             [
                 challenge.token,
                 ".",
-                encode_b64jose(self.key.thumbprint(hash_function=SHA256)),
+                encode_b64jose(self._key.thumbprint(hash_function=SHA256)),
             ]
         ).encode()
 
@@ -1142,11 +1139,11 @@ class ACMEClient(object):
             State of the client as a stream of bytes
         """
         state = {
-            "directory": self.directory_url,
-            "key": self.key.fields_to_partial_json(),
+            "directory": self._directory_url,
+            "key": self._key.fields_to_partial_json(),
         }
-        if self.account_url is not None:
-            state["account_url"] = self.account_url
+        if self._account_url is not None:
+            state["account_url"] = self._account_url
         return json.dumps(state, indent=2).encode()
 
     @classmethod

@@ -250,7 +250,7 @@ def test_post_timeout():
     async def inner():
         async with BlackholeACMEClient(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
-            client.nonces.add(
+            client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
             with pytest.raises(ACMETimeoutError):
@@ -263,7 +263,7 @@ def test_post_error():
     async def inner():
         async with BuggyACMEClient(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
-            client.nonces.add(
+            client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
             with pytest.raises(ACMEConnectError):
@@ -276,7 +276,7 @@ def test_post_retry():
     async def inner():
         async with BlackholeACMEClientBadNonce(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
-            client.nonces.add(
+            client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
             with pytest.raises(ACMEBadNonceError):
@@ -356,25 +356,25 @@ def test_check_response_err(j, etype):
 
 def test_nonce_from_response():
     client = ACMEClient(DIRECTORY, key=KEY)
-    assert not client.nonces
+    assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
-    assert client.nonces == {
+    assert client._nonces == {
         b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
     }
 
 
 def test_nonce_from_response_none():
     client = ACMEClient(DIRECTORY, key=KEY)
-    assert not client.nonces
+    assert not client._nonces
     resp = Response(200)
     client._nonce_from_response(resp)
-    assert not client.nonces
+    assert not client._nonces
 
 
 def test_nonce_from_response_decode_error():
     client = ACMEClient(DIRECTORY, key=KEY)
-    assert not client.nonces
+    assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "x"})
     with pytest.raises(ACMEBadNonceError):
         client._nonce_from_response(resp)
@@ -382,7 +382,7 @@ def test_nonce_from_response_decode_error():
 
 def test_nonce_from_response_duplicated():
     client = ACMEClient(DIRECTORY, key=KEY)
-    assert not client.nonces
+    assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
     with pytest.raises(ACMEError):
@@ -586,9 +586,9 @@ def test_state1() -> None:
     state = client.get_state()
     client2 = ACMEClient.from_state(state)
     assert client is not client2
-    assert client.directory == client2.directory
-    assert client.key == client2.key
-    assert client2.account_url is None
+    assert client._directory == client2._directory
+    assert client._key == client2._key
+    assert client2._account_url is None
 
 
 def test_state2() -> None:
@@ -598,6 +598,6 @@ def test_state2() -> None:
     state = client.get_state()
     client2 = ACMEClient.from_state(state)
     assert client is not client2
-    assert client.directory == client2.directory
-    assert client.key == client2.key
-    assert client.account_url == client2.account_url
+    assert client._directory == client2._directory
+    assert client._key == client2._key
+    assert client._account_url == client2._account_url
