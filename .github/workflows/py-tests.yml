@@ -6,11 +6,11 @@ on:
   push:
     paths:
       - ".github/workflows/py-tests.yml"
+      - "pyproject.toml"
       - ".requirements/*.txt"
       - "examples/**"
       - "src/**"
       - "tests/**"
-      - "setup.cfg"
     branches:
       - master
   pull_request:
@@ -62,6 +62,10 @@ jobs:
 
       - name: Run Tests
         run: coverage run -m pytest -v
+        env:
+          CI_ACME_TEST_DOMAIN: ${{ secrets.CI_ACME_TEST_DOMAIN }}
+          CI_ACME_TEST_USER: ${{ secrets.CI_ACME_TEST_USER }}
+          CI_ACME_TEST_PASS: ${{ secrets.CI_ACME_TEST_PASS }}
 
       - name: Coverage Report
         run: coverage report
