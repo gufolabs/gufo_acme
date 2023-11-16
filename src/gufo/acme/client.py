@@ -62,6 +62,7 @@ from .types import ACMEAuthorization, ACMEChallenge, ACMEDirectory, ACMEOrder
 
 BAD_REQUEST = 400
 T = TypeVar("T")
+CT = TypeVar("CT", bound="ACMEClient")
 
 
 class ACMEClient(object):
@@ -131,7 +132,7 @@ class ACMEClient(object):
         self._timeout = timeout or self.DEFAULT_TIMEOUT
         self._user_agent = user_agent or f"Gufo ACME/{__version__}"
 
-    async def __aenter__(self: "ACMEClient") -> "ACMEClient":
+    async def __aenter__(self: CT) -> CT:
         """
         An asynchronous context manager.
 
@@ -1147,7 +1148,7 @@ class ACMEClient(object):
         return json.dumps(state, indent=2).encode()
 
     @classmethod
-    def from_state(cls: Type["ACMEClient"], state: bytes) -> "ACMEClient":
+    def from_state(cls: Type[CT], state: bytes) -> CT:
         """
         Restore ACMEClient from the state.
 
@@ -1162,7 +1163,7 @@ class ACMEClient(object):
             New ACMEClient instance.
         """
         s = json.loads(state)
-        return ACMEClient(
+        return cls(
             s["directory"],
             key=JWKRSA.fields_from_json(s["key"]),
             account_url=s.get("account_url"),
