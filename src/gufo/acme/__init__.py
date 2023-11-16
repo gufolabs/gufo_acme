@@ -17,4 +17,4 @@ The package consists of the following modules:
 * [log][gufo.acme.log] - Logging utilities.
 * [types][gufo.acme.types] - Package public types.
 """
-__version__ = "0.1.0"
+__version__ = "0.1.1"

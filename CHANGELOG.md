@@ -12,7 +12,7 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## [Unreleased]
 
-## Fixed
+## 0.1.1 - 2023-11-16
 
 * Fixed `ACMEClient.from_state()` to return a proper subclass.
 * Fixed type annotation for `ACMEClient.__aenter__()` in subclasses.
