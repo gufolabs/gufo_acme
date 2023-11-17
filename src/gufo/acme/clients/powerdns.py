@@ -85,7 +85,8 @@ class PowerDnsAcmeClient(ACMEClient):
         )
         # Set PDNS challenge
         async with self._get_client() as client:
-            # Construct the API endpoint for updating a record in a specific zone
+            # Construct the API endpoint for updating
+            # a record in a specific zone
             endpoint = (
                 f"{self.api_url}/api/v1/servers/localhost/zones/{domain}"
             )
