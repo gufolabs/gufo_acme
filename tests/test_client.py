@@ -22,7 +22,7 @@ from gufo.acme.error import (
     ACMEBadNonceError,
     ACMEConnectError,
     ACMEError,
-    ACMEFullfillmentFailed,
+    ACMEFulfillmentFailed,
     ACMENotRegistredError,
     ACMERateLimitError,
     ACMETimeoutError,
@@ -544,7 +544,7 @@ def test_sign_no_fullfilment():
             uri = await client.new_account(EMAIL)
             assert uri
             # Create new order
-            with pytest.raises(ACMEFullfillmentFailed):
+            with pytest.raises(ACMEFulfillmentFailed):
                 await client.sign(domain, csr_pem)
             # Deactivate account
             await client.deactivate_account()

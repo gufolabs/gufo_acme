@@ -50,7 +50,7 @@ from .error import (
     ACMECertificateError,
     ACMEConnectError,
     ACMEError,
-    ACMEFullfillmentFailed,
+    ACMEFulfillmentFailed,
     ACMENotRegistredError,
     ACMERateLimitError,
     ACMETimeoutError,
@@ -633,7 +633,7 @@ class ACMEClient(object):
 
         Raises:
             ACMETimeoutError: On timeouts.
-            ACMEFullfillmentFailed: If the client failed to
+            ACMEFulfillmentFailed: If the client failed to
                 fulfill any challenge.
             ACMEError: and subclasses in case of other errors.
         """
@@ -653,7 +653,7 @@ class ACMEClient(object):
                     fulfilled_challenge = ch
                     break
             else:
-                raise ACMEFullfillmentFailed
+                raise ACMEFulfillmentFailed
             # Wait for authorization became valid
             await self._wait_for(self.wait_for_authorization(auth), 60.0)
             # Clear challenge
@@ -916,7 +916,7 @@ class ACMEClient(object):
             h = self.fulfill_tls_alpn_01
         else:
             return False
-        logger.warning("Trying to fullfill %s for %s", challenge.type, domain)
+        logger.warning("Trying to fulfill %s for %s", challenge.type, domain)
         r = await h(domain, challenge)
         if r:
             logger.warning(
