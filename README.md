@@ -2,7 +2,7 @@
 
 *Gufo ACME is a Python asyncio client for the ACME protocol.*
 
-[![PyPi version](https://img.shields.io/pypi/v/gufo_acme.svg)](https://pypi.python.org/pypi/gufo_loader/)
+[![PyPi version](https://img.shields.io/pypi/v/gufo_acme.svg)](https://pypi.python.org/pypi/gufo_acme/)
 ![Python Versions](https://img.shields.io/pypi/pyversions/gufo_acme)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 ![Build](https://img.shields.io/github/actions/workflow/status/gufolabs/gufo_acme/py-tests.yml?branch=master)
