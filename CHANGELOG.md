@@ -10,17 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 To see unreleased changes, please see the [CHANGELOG on the master branch](https://github.com/gufolabs/gufo_acme/blob/master/CHANGELOG.md) guide.
 
-## [Unreleased]
+## 0.2.0 - 2023-11-17
 
 ## Added
 
 * DavAcmeClient: http-01 fulfillment using WebDAV
 * PowerDnsAcmeClient: dns-01 fulfillment using PowerDNS.
-* WEBAcmeClient: http-01 fulfillment using static files.
+* WebAcmeClient: http-01 fulfillment using static files.
 
 ## Changed
 
-* AcmeClient has been moved into `gufo.acme.clients.base`.
+* ACMEClient has been moved into `gufo.acme.clients.base`.
+* ACMEClient, types, and exceptions have been renamed to snake-case.
 
 ## Fixed
 
