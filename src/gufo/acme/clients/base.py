@@ -99,11 +99,11 @@ class ACMEClient(object):
     Args:
         directory_url: An URL to ACME directory.
         key: JWK private key. The compatible key may be generated
-            by the [gufo.acme.client.ACMEClient.get_key][] function.
+            by the [gufo.acme.clients.base.ACMEClient.get_key][] function.
         alg: Signing algorithm to use.
         account_url: Optional ACME account URL, cotaining the
             stored result of the previous call to the
-            [gufo.acme.client.ACMEClient.new_account][] function.
+            [gufo.acme.clients.base.ACMEClient.new_account][] function.
         timeout: Network requests timeout in seconds.
         user_agent: Override default User-Agent header.
     """
@@ -161,7 +161,7 @@ class ACMEClient(object):
         The client may be bound to account either:
 
         * By setting `account_url` in constructor.
-        * By calling [gufo.acme.client.ACMEClient.new_account][]
+        * By calling [gufo.acme.clients.base.ACMEClient.new_account][]
 
         Returns:
             True - if the client is bound to account,
@@ -949,7 +949,7 @@ class ACMEClient(object):
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_tls_alpn_01][gufo.acme.client.ACMEClient.clear_tls_alpn_01]
+        [clear_tls_alpn_01][gufo.acme.clients.base.ACMEClient.clear_tls_alpn_01]
         to perform cleanup.
 
         Args:
@@ -970,7 +970,7 @@ class ACMEClient(object):
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_http_01][gufo.acme.client.ACMEClient.clear_http_01]
+        [clear_http_01][gufo.acme.clients.base.ACMEClient.clear_http_01]
         to perform cleanup.
 
         Args:
@@ -991,7 +991,7 @@ class ACMEClient(object):
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_dns_01][gufo.acme.client.ACMEClient.clear_dns_01]
+        [clear_dns_01][gufo.acme.clients.base.ACMEClient.clear_dns_01]
         to perform cleanup.
 
         Args:
@@ -1168,7 +1168,7 @@ class ACMEClient(object):
         Restore ACMEClient from the state.
 
         Restore the state of client from result of
-        [ACMEClient.get_state][gufo.acme.client.ACMEClient.get_state]
+        [ACMEClient.get_state][gufo.acme.clients.base.ACMEClient.get_state]
         call.
 
         Args:
