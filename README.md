@@ -23,9 +23,10 @@ simplifies the protocol complexity with a straightforward and robust API.
 
 Gufo ACME contains various clients which can be applied to your tasks:
 
-* [ACMEClient]() - base client to implement any fulfillment functionality
+* ACMEClient - base client to implement any fulfillment functionality
     by creating subclasses.
 * DAVACMEClient - http-01 fulfillment using WebDAV methods.    
+* WebACMEClient - http-01 static file fulfillment.
 
 ## Supported Certificate Authorities
 

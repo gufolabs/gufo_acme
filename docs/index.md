@@ -22,7 +22,8 @@ Gufo ACME contains various clients which can be applied to your tasks:
 
 * [ACMEClient][gufo.acme.clients.base.ACMEClient] - base client to implement any fulfillment functionality
     by creating subclasses.
-* [DAVACMEClient][gufo.acme.clients.dav.DAVACMEClient] - http-01 fulfillment using WebDAV methods.    
+* [DAVACMEClient][gufo.acme.clients.dav.DAVACMEClient] - http-01 fulfillment using WebDAV methods.
+* [WebACMEClient][gufo.acme.clients.web.WebACMEClient] - http-01 static file fulfillment.
 
 ## Supported Certificate Authorities
 

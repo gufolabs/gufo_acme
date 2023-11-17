@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------
-# Gufo ACME: ACMEClient implementation
+# Gufo ACME: DAVACMEClient implementation
 # ---------------------------------------------------------------------
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
-"""An DAVACMEClient implementation."""
+"""A DAVACMEClient implementation."""
 
 # Python modules
 from typing import Any
