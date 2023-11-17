@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 
-from gufo.acme.client import ACMEClient
+from gufo.acme.clients.base import ACMEClient
 from gufo.acme.types import ACMEChallenge
 
 CHALLENGE_DIR = "/www/acme/"

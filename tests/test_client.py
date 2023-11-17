@@ -16,7 +16,7 @@ import httpx
 import pytest
 
 # CSR Proxy modules
-from gufo.acme.client import ACMEClient
+from gufo.acme.clients.base import ACMEClient
 from gufo.acme.error import (
     ACMEAlreadyRegistered,
     ACMEBadNonceError,

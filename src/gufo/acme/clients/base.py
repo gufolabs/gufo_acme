@@ -41,9 +41,9 @@ from josepy.jwa import RS256, JWASignature
 from josepy.jwk import JWK, JWKRSA
 
 # Gufo ACME modules
-from . import __version__
-from .acme import AcmeJWS
-from .error import (
+from .. import __version__
+from ..acme import AcmeJWS
+from ..error import (
     ACMEAlreadyRegistered,
     ACMEAuthorizationError,
     ACMEBadNonceError,
@@ -57,8 +57,8 @@ from .error import (
     ACMEUnauthorizedError,
     ACMEUndecodableError,
 )
-from .log import logger
-from .types import ACMEAuthorization, ACMEChallenge, ACMEDirectory, ACMEOrder
+from ..log import logger
+from ..types import ACMEAuthorization, ACMEChallenge, ACMEDirectory, ACMEOrder
 
 BAD_REQUEST = 400
 T = TypeVar("T")

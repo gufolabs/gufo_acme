@@ -1,7 +1,7 @@
 import asyncio
 import sys
 
-from gufo.acme.client import ACMEClient
+from gufo.acme.clients.base import ACMEClient
 
 DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
 

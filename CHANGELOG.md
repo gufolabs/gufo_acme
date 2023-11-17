@@ -12,6 +12,10 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## [Unreleased]
 
+## Changed
+
+* ACMEClient has been moved into `gufo.acme.clients.base`.
+
 ## Fixed
 
 * Fixed typo in exception class name.

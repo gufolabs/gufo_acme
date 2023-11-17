@@ -1,6 +1,6 @@
 import sys
 
-from gufo.acme.client import ACMEClient
+from gufo.acme.clients.base import ACMEClient
 
 
 def main(path: str) -> None:

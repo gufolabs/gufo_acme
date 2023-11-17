@@ -25,7 +25,7 @@ body:
         should be self-contained, i.e., can be copy-pasted into the Python
         interpreter or run as-is via `python myproblem.py`.
       placeholder: |
-        from gufo.acme.client import ACMEClient
+        from gufo.acme.clients.base import ACMEClient
         << your code here >>
       render: python
     validations:

@@ -12,7 +12,7 @@ Attributes:
 The package consists of the following modules:
 
 * [acme][gufo.acme.acme] - ACME protocol messages.
-* [client][gufo.acme.client] - ACMEClient implementation.
+* [clients][gufo.acme.clients] - Various ACME clients imlementations.
 * [error][gufo.acme.error] - Error classes.
 * [log][gufo.acme.log] - Logging utilities.
 * [types][gufo.acme.types] - Package public types.
