@@ -39,7 +39,7 @@ class ACMEAuthorizationError(ACMEError):
     """Failed to pass an authorization."""
 
 
-class ACMEFullfillmentFailed(ACMEError):
+class ACMEFulfillmentFailed(ACMEError):
     """Failed to fulfill challenge."""
 
 
