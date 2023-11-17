@@ -112,13 +112,14 @@ class ACMEClient(object):
     NONCE_HEADER: str = "Replay-Nonce"
     RETRY_AFTER_HEADER: str = "Retry-After"
     DEFAULT_TIMEOUT: float = 40.0
+    DEFAULT_SIGNATURE = RS256
 
     def __init__(
         self: "ACMEClient",
         directory_url: str,
         *,
         key: JWK,
-        alg: JWASignature = RS256,
+        alg: Optional[JWASignature] = None,
         account_url: Optional[str] = None,
         timeout: Optional[float] = None,
         user_agent: Optional[str] = None,
@@ -126,7 +127,7 @@ class ACMEClient(object):
         self._directory_url = directory_url
         self._directory: Optional[ACMEDirectory] = None
         self._key = key
-        self._alg = alg
+        self._alg = alg or self.DEFAULT_SIGNATURE
         self._account_url = account_url
         self._nonces: Set[bytes] = set()
         self._timeout = timeout or self.DEFAULT_TIMEOUT
@@ -556,6 +557,27 @@ class ACMEClient(object):
         csr = x509.load_pem_x509_csr(pem)
         return csr.public_bytes(encoding=Encoding.DER)
 
+    @staticmethod
+    def _get_order_status(resp: httpx.Response) -> str:
+        """
+        Check order response.
+
+        Args:
+            resp: Order response
+
+        Returns:
+            Order status
+
+        Raises:
+            ACMECertificateError: if status is invalid
+        """
+        data = resp.json()
+        status = cast(str, data["status"])
+        if status == "invalid":
+            msg = "Failed to finalize order"
+            raise ACMECertificateError(msg)
+        return status
+
     async def finalize_and_wait(
         self: "ACMEClient", order: ACMEOrder, *, csr: bytes
     ) -> bytes:
@@ -578,24 +600,17 @@ class ACMEClient(object):
         resp = await self._post(
             order.finalize, {"csr": encode_b64jose(self._pem_to_der(csr))}
         )
-        data = resp.json()
-        status = data["status"]
-        if status == "invalid":
-            msg = "Failed to finalize order"
-            raise ACMECertificateError(msg)
+        self._get_order_status(resp)
         order_uri = resp.headers["Location"]
         # Poll for certificate
         await self._random_delay(1.0)
         while True:
             logger.warning("Polling order")
             resp = await self._post(order_uri, None)
-            data = resp.json()
-            status = data["status"]
-            if status == "invalid":
-                msg = "Failed to finalize order"
-                raise ACMECertificateError(msg)
+            status = self._get_order_status(resp)
             if status == "valid":
                 logger.warning("Order is ready. Downloading certificate")
+                data = resp.json()
                 resp = await self._post(data["certificate"], None)
                 return resp.text.encode()
 
@@ -1148,7 +1163,7 @@ class ACMEClient(object):
         return json.dumps(state, indent=2).encode()
 
     @classmethod
-    def from_state(cls: Type[CT], state: bytes) -> CT:
+    def from_state(cls: Type[CT], state: bytes, **kwargs: Any) -> CT:
         """
         Restore ACMEClient from the state.
 
@@ -1158,6 +1173,7 @@ class ACMEClient(object):
 
         Args:
             state: Stored state.
+            kwargs: An additional arguments to be passed to constructor.
 
         Returns:
             New ACMEClient instance.
@@ -1167,4 +1183,5 @@ class ACMEClient(object):
             s["directory"],
             key=JWKRSA.fields_from_json(s["key"]),
             account_url=s.get("account_url"),
+            **kwargs,
         )

@@ -18,6 +18,17 @@ for automated certificate signing, now widely used by services
 such as Let's Encrypt. Gufo ACME is a Python asyncio ACME client library that
 simplifies the protocol complexity with a straightforward and robust API.
 
+Gufo ACME contains various clients which can be applied to your tasks:
+
+* [ACMEClient](reference/gufo/acme/clients/base/#gufo.acme.clients.base.ACMEClient) - base client to implement any fulfillment functionality
+    by creating subclasses.
+* [DAVACMEClient](reference/gufo/acme/clients/dav/#gufo.acme.clients.dav.DAVACMEClient) - http-01 fulfillment using WebDAV methods.    
+
+## Supported Certificate Authorities
+
+* [Letsencrypt](https://letsencrypt.org)
+* Any [RFC-8555](https://tools.ietf.org/html/rfc8555) compatible CA.
+
 ## Examples
 
 ### Account Creation
@@ -80,7 +91,7 @@ async with SignACMEClient.from_state(state) as client:
 * Fully typed.
 * Clean API.
 * Robust well-tested code.
-* 97+% test coverage.
+* 99+% test coverage.
 
 ## On Gufo Stack
 

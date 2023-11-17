@@ -12,6 +12,10 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## [Unreleased]
 
+## Added
+
+* DAVACMEClient: http-01 fulfillment using WebDAV
+
 ## Changed
 
 * ACMEClient has been moved into `gufo.acme.clients.base`.

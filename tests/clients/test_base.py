@@ -11,15 +11,17 @@ import json
 import os
 from typing import Any, Dict, List, Union
 
-# Third-party modules
 import httpx
+
+# Third-party modules
 import pytest
 
-# CSR Proxy modules
+# Gufo ACME modules
 from gufo.acme.clients.base import ACMEClient
 from gufo.acme.error import (
     ACMEAlreadyRegistered,
     ACMEBadNonceError,
+    ACMECertificateError,
     ACMEConnectError,
     ACMEError,
     ACMEFulfillmentFailed,
@@ -31,14 +33,12 @@ from gufo.acme.error import (
 )
 from gufo.acme.types import ACMEChallenge
 from httpx import ConnectError, Response
-
-# Third-party modules
 from josepy.jwk import JWKRSA
 
-ENV_TEST_DOMAIN = "CI_TEST_DOMAIN"
+from .utils import DIRECTORY, EMAIL, get_csr_pem, not_set, not_set_reason
 
-EMAIL = "acme-000000000@gufolabs.com"
-DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+ENV_CI_ACME_TEST_DOMAIN = "CI_ACME_TEST_DOMAIN"
+
 KEY = JWKRSA.from_json(
     {
         "n": "gvvjoJPd1L4sq1bT0q2C94N3WV7W7lroA_MzF-SGMVYFasI2lvqw3kAkFRxG366JfHr3B1R-xlCzEPHNixbL6b0ccvPFZZsungnx5m_uGL2FMiisu186dMnfsk6YssveboxiQXEhGMxI9T6GjE6l6ec1PGY5uB70vP2wkGPxkvRLD2tGae_-7kCgRzvF2xOaGZjT-jxHcYpWutNN-qQzDoHnhLu0LIwWlXBazAs6zbkPvPW9PNZAUencWxxQ5hJtLkVSvgSYwzI1cxlrC8lCjg6rIR9LA8s5PLzee_nEotljlU0ljXz3eyD9W4fl4rC46v8-ufk5Ez9utQQ2sVjIMQ",
@@ -446,95 +446,11 @@ def test_pem_to_ber():
     assert der == expected
 
 
-class ACMESigner(ACMEClient):
-    async def fulfill_http_01(
-        self, domain: str, challenge: ACMEChallenge
-    ) -> bool:
-        """Upload challenge."""
-        async with self._get_client() as client:
-            domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
-            v = self.get_key_authorization(challenge)
-            resp = await client.put(
-                f"http://{domain}/.well-known/acme-challenge/{challenge.token}",
-                content=v,
-                auth=httpx.BasicAuth(
-                    username=os.getenv(ENV_CI_ACME_TEST_USER),
-                    password=os.getenv(ENV_CI_ACME_TEST_USERKEY),
-                ),
-            )
-            if resp.status_code > 299:
-                msg = f"Failed to put challenge: code {resp.status_code}"
-                raise ACMEError(msg)
-        return True
-
-    async def clear_http_01(
-        self: ACMEClient, domain: str, challenge: ACMEChallenge
-    ) -> None:
-        async with self._get_client() as client:
-            domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
-            resp = await client.delete(
-                f"http://{domain}/.well-known/acme-challenge/{challenge.token}",
-                auth=httpx.BasicAuth(
-                    username=os.getenv(ENV_CI_ACME_TEST_USER),
-                    password=os.getenv(ENV_CI_ACME_TEST_USERKEY),
-                ),
-            )
-            if resp.status_code > 299:
-                msg = f"Failed to put challenge: code {resp.status_code}"
-                raise ACMEError(msg)
-
-
-def get_csr_pem(domain: str) -> bytes:
-    """Generate CSR for domain in PEM format."""
-    private_key = ACMEClient.get_domain_private_key()
-    return ACMEClient.get_domain_csr(domain, private_key)
-
-
-ENV_CI_ACME_TEST_DOMAIN = "CI_ACME_TEST_DOMAIN"
-ENV_CI_ACME_TEST_USER = "CI_ACME_TEST_USER"
-ENV_CI_ACME_TEST_USERKEY = "CI_ACME_TEST_PASS"
-
-
-def to_skip_scenario() -> bool:
-    return not (
-        os.environ.get(ENV_CI_ACME_TEST_DOMAIN)
-        and os.environ.get(ENV_CI_ACME_TEST_USER)
-        and os.environ.get(ENV_CI_ACME_TEST_USERKEY)
-    )
-
-
 @pytest.mark.skipif(
-    to_skip_scenario(),
-    reason=f"{ENV_CI_ACME_TEST_DOMAIN}, {ENV_CI_ACME_TEST_USER}, {ENV_CI_ACME_TEST_USERKEY}"
-    " variables must be set",
+    not_set([ENV_CI_ACME_TEST_DOMAIN]),
+    reason=not_set_reason([ENV_CI_ACME_TEST_DOMAIN]),
 )
-def test_sign():
-    async def inner():
-        csr_pem = get_csr_pem(domain)
-        #
-        pk = ACMEClient.get_key()
-        async with ACMESigner(DIRECTORY, key=pk) as client:
-            # Register account
-            uri = await client.new_account(EMAIL)
-            assert uri
-            # Create new order
-            cert = await client.sign(domain, csr_pem)
-            # Deactivate account
-            await client.deactivate_account()
-        assert cert
-        assert b"BEGIN CERTIFICATE" in cert
-        assert b"END CERTIFICATE" in cert
-
-    domain = os.getenv(ENV_CI_ACME_TEST_DOMAIN) or ""
-    asyncio.run(inner())
-
-
-@pytest.mark.skipif(
-    to_skip_scenario(),
-    reason=f"{ENV_CI_ACME_TEST_DOMAIN}, {ENV_CI_ACME_TEST_USER}, {ENV_CI_ACME_TEST_USERKEY}"
-    " variables must be set",
-)
-def test_sign_no_fullfilment():
+def test_sign_no_fulfilment():
     async def inner():
         csr_pem = get_csr_pem(domain)
         #
@@ -556,7 +472,7 @@ def test_sign_no_fullfilment():
 @pytest.mark.parametrize(
     "ch_type", ["http-01", "dns-01", "tls-alpn-01", "invalid"]
 )
-def test_default_fullfilment(ch_type: str) -> None:
+def test_default_fulfilment(ch_type: str) -> None:
     chall = ACMEChallenge(type=ch_type, url="", token="")
     client = ACMEClient(DIRECTORY, key=KEY)
     r = asyncio.run(client.fulfill_challenge("example.com", chall))
@@ -601,3 +517,15 @@ def test_state2() -> None:
     assert client._directory == client2._directory
     assert client._key == client2._key
     assert client._account_url == client2._account_url
+
+
+def test_invalid_order_status() -> None:
+    resp = httpx.Response(200, json={"status": "invalid"})
+    with pytest.raises(ACMECertificateError):
+        ACMEClient._get_order_status(resp)
+
+
+def test_valid_order_status() -> None:
+    resp = httpx.Response(200, json={"status": "valid"})
+    s = ACMEClient._get_order_status(resp)
+    assert s == "valid"
