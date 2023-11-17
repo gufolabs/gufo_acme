@@ -2,15 +2,15 @@ import asyncio
 import os
 import sys
 
-from gufo.acme.clients.base import ACMEClient
-from gufo.acme.types import ACMEChallenge
+from gufo.acme.clients.base import AcmeClient
+from gufo.acme.types import AcmeChallenge
 
 CHALLENGE_DIR = "/www/acme/"
 
 
-class SignACMEClient(ACMEClient):
+class SignAcmeClient(AcmeClient):
     async def fulfill_http_01(
-        self, domain: str, challenge: ACMEChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> bool:
         v = self.get_key_authorization(challenge)
         with open(os.path.join(CHALLENGE_DIR, challenge.token), "wb") as fp:
@@ -18,7 +18,7 @@ class SignACMEClient(ACMEClient):
         return True
 
     async def clear_http_01(
-        self: ACMEClient, domain: str, challenge: ACMEChallenge
+        self: AcmeClient, domain: str, challenge: AcmeChallenge
     ) -> None:
         os.unlink(os.path.join(CHALLENGE_DIR, challenge.token))
 
@@ -30,7 +30,7 @@ async def main(
         state = fp.read()
     with open(csr_path, "wb") as fp:
         csr = fp.read()
-    async with SignACMEClient.from_state(state) as client:
+    async with SignAcmeClient.from_state(state) as client:
         cert = await client.sign(domain, csr)
     with open(cert_path, "wb") as fp:
         fp.write(cert)

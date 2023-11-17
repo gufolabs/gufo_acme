@@ -13,9 +13,9 @@ import httpx
 import pytest
 
 # Gufo ACME modules
-from gufo.acme.clients.base import ACMEClient
+from gufo.acme.clients.base import AcmeClient
 from gufo.acme.clients.powerdns import PowerDnsAcmeClient
-from gufo.acme.error import ACMEFulfillmentFailed
+from gufo.acme.error import AcmeFulfillmentFailed
 
 from .utils import DIRECTORY, EMAIL, get_csr_pem, not_set, not_set_reason
 
@@ -57,7 +57,7 @@ def test_sign():
 
 
 def test_state():
-    client = ACMEClient(
+    client = AcmeClient(
         DIRECTORY,
         key=PowerDnsAcmeClient.get_key(),
     )
@@ -82,5 +82,5 @@ def test_normalize_url(url: str, expected: str) -> None:
 
 def test_invalid_response():
     resp = httpx.Response(200)
-    with pytest.raises(ACMEFulfillmentFailed):
+    with pytest.raises(AcmeFulfillmentFailed):
         PowerDnsAcmeClient._check_api_response(resp)

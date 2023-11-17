@@ -78,7 +78,7 @@ to run tests in the CI environment. On local environments, the test is skipped b
 To enable the test in your local environment, additional
 infrastructure is needed.
 
-### DAVACMEClient
+### DavAcmeClient
 
 1. Have control over a DNS zone (later `<mydomain>`).
 2. Set up an Nginx server.

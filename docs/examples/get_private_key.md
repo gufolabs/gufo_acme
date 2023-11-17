@@ -27,7 +27,7 @@ Import `sys` module to parse the CLI argument.
 --8<-- "examples/get_private_key.py"
 ```
 
-Then we import an `ACMEClient` itself.
+Then we import an `AcmeClient` itself.
 
 ```  py title="get_private_key.py" linenums="1" hl_lines="6"
 --8<-- "examples/get_private_key.py"
@@ -39,12 +39,12 @@ a private key.
 ```  py title="get_private_key.py" linenums="1" hl_lines="7"
 --8<-- "examples/get_private_key.py"
 ```
-`ACMEClient.get_domain_private_key()` function generates
+`AcmeClient.get_domain_private_key()` function generates
 a private key in PEM format. It assepts an optional parameter
 which defines a RSA key length. The default is 4096, which is
 suitable for our applications. This function is the
 static method, so we don't need to instantiate an
-`ACMEClient`.
+`AcmeClient`.
 
 ```  py title="get_private_key.py" linenums="1" hl_lines="8 9"
 --8<-- "examples/get_private_key.py"

@@ -4,9 +4,9 @@ import os
 import tempfile
 from pathlib import Path
 
-# Gufo ACMEE modules
-from gufo.acme.clients.web import WebACMEClient
-from gufo.acme.types import ACMEChallenge
+# Gufo AcmeE modules
+from gufo.acme.clients.web import WebAcmeClient
+from gufo.acme.types import AcmeChallenge
 
 from .utils import DIRECTORY, KEY
 
@@ -19,14 +19,14 @@ AUTH_KEY = (
 
 def test_web() -> None:
     async def inner():
-        chall = ACMEChallenge(
+        chall = AcmeChallenge(
             type="http-01",
             url="xxx",
             token="qPsDhTbvumL6q2DryepIyzJS1nMkghS92IqI4mug-7c",
         )
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
-            client = WebACMEClient(DIRECTORY, key=KEY, path=path)
+            client = WebAcmeClient(DIRECTORY, key=KEY, path=path)
             r = await client.fulfill_http_01(DOMAIN, chall)
             assert r is True
             with open(path / chall.token, "rb") as fp:

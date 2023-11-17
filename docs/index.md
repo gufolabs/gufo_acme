@@ -20,11 +20,11 @@ simplifies the protocol complexity with a straightforward and robust API.
 
 Gufo ACME contains various clients which can be applied to your tasks:
 
-* [ACMEClient][gufo.acme.clients.base.ACMEClient] - base client to implement any fulfillment functionality
+* [AcmeClient][gufo.acme.clients.base.AcmeClient] - base client to implement any fulfillment functionality
     by creating subclasses.
-* [DAVACMEClient][gufo.acme.clients.dav.DAVACMEClient] - http-01 fulfillment using WebDAV methods.
+* [DavAcmeClient][gufo.acme.clients.dav.DavAcmeClient] - http-01 fulfillment using WebDAV methods.
 * [PowerDnsAcmeClient][gufo.acme.clients.powerdns.PowerDnsAcmeClient] - dns-01 PowerDNS fulfillment.
-* [WebACMEClient][gufo.acme.clients.web.WebACMEClient] - http-01 static file fulfillment.
+* [WebAcmeClient][gufo.acme.clients.web.WebAcmeClient] - http-01 static file fulfillment.
 
 ## Supported Certificate Authorities
 
@@ -37,8 +37,8 @@ Gufo ACME contains various clients which can be applied to your tasks:
 
 Create an account and store state to the file.
 ``` python
-client_key = ACMEClient.get_key()
-async with ACMEClient(DIRECTORY, key=client_key) as client:
+client_key = AcmeClient.get_key()
+async with AcmeClient(DIRECTORY, key=client_key) as client:
     await client.new_account(email)
     state = client.get_state()
 with open(client_state_path, "wb") as fp:
@@ -49,14 +49,14 @@ with open(client_state_path, "wb") as fp:
 
 To generate a private key in PEM format.
 ``` python
-private_key = ACMEClient.get_domain_private_key()
+private_key = AcmeClient.get_domain_private_key()
 ```
 
 ### Generate CSR
 
 To generate a certificate signing request.
 ``` python
-csr = ACMEClient.get_domain_csr(domain, private_key)
+csr = AcmeClient.get_domain_csr(domain, private_key)
 ```
 
 ### Sign Certificate
@@ -67,9 +67,9 @@ Sign the certificate using `http-01` challenge:
 CHALLENGE_DIR = "/www/acme/"
 
 
-class SignACMEClient(ACMEClient):
+class SignAcmeClient(AcmeClient):
     async def fulfill_http_01(
-        self, domain: str, challenge: ACMEChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> bool:
         v = self.get_key_authorization(challenge)
         with open(os.path.join(CHALLENGE_DIR, challenge.token), "wb") as fp:
@@ -77,12 +77,12 @@ class SignACMEClient(ACMEClient):
         return True
 
     async def clear_http_01(
-        self: ACMEClient, domain: str, challenge: ACMEChallenge
+        self: AcmeClient, domain: str, challenge: AcmeChallenge
     ) -> None:
         os.unlink(os.path.join(CHALLENGE_DIR, challenge.token))
 
     ...
-async with SignACMEClient.from_state(state) as client:
+async with SignAcmeClient.from_state(state) as client:
     cert = await client.sign(domain, csr)
 ```
 

@@ -17,21 +17,21 @@ import httpx
 import pytest
 
 # Gufo ACME modules
-from gufo.acme.clients.base import ACMEClient
+from gufo.acme.clients.base import AcmeClient
 from gufo.acme.error import (
-    ACMEAlreadyRegistered,
-    ACMEBadNonceError,
-    ACMECertificateError,
-    ACMEConnectError,
-    ACMEError,
-    ACMEFulfillmentFailed,
-    ACMENotRegistredError,
-    ACMERateLimitError,
-    ACMETimeoutError,
-    ACMEUnauthorizedError,
-    ACMEUndecodableError,
+    AcmeAlreadyRegistered,
+    AcmeBadNonceError,
+    AcmeCertificateError,
+    AcmeConnectError,
+    AcmeError,
+    AcmeFulfillmentFailed,
+    AcmeNotRegistredError,
+    AcmeRateLimitError,
+    AcmeTimeoutError,
+    AcmeUnauthorizedError,
+    AcmeUndecodableError,
 )
-from gufo.acme.types import ACMEChallenge
+from gufo.acme.types import AcmeChallenge
 from httpx import ConnectError, Response
 from josepy.jwk import JWKRSA
 
@@ -42,7 +42,7 @@ ENV_CI_ACME_TEST_DOMAIN = "CI_ACME_TEST_DOMAIN"
 
 def test_get_directory() -> None:
     async def inner():
-        async with ACMEClient(DIRECTORY, key=KEY) as client:
+        async with AcmeClient(DIRECTORY, key=KEY) as client:
             d1 = await client._get_directory()
             assert d1.new_account
             # Cached
@@ -54,7 +54,7 @@ def test_get_directory() -> None:
 
 def test_get_nonce() -> None:
     async def inner():
-        async with ACMEClient(DIRECTORY, key=KEY) as client:
+        async with AcmeClient(DIRECTORY, key=KEY) as client:
             nonce = await client._get_nonce(DIRECTORY)
             assert nonce
             assert isinstance(nonce, bytes)
@@ -63,7 +63,7 @@ def test_get_nonce() -> None:
 
 
 def test_to_jws() -> None:
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     nonce = b"12345"
     msg = client._to_jws(
         {
@@ -86,23 +86,23 @@ def test_to_jws() -> None:
 
 
 def test_check_unbound():
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     client._check_unbound()
-    with pytest.raises(ACMENotRegistredError):
+    with pytest.raises(AcmeNotRegistredError):
         client._check_bound()
 
 
 def test_check_bound():
-    client = ACMEClient(DIRECTORY, key=KEY, account_url="http://127.0.0.1/acc")
+    client = AcmeClient(DIRECTORY, key=KEY, account_url="http://127.0.0.1/acc")
     client._check_bound()
-    with pytest.raises(ACMEAlreadyRegistered):
+    with pytest.raises(AcmeAlreadyRegistered):
         client._check_unbound()
 
 
 def test_new_and_deactivate_account() -> None:
     async def inner():
-        key = ACMEClient.get_key()
-        async with ACMEClient(DIRECTORY, key=key) as client:
+        key = AcmeClient.get_key()
+        async with AcmeClient(DIRECTORY, key=key) as client:
             client._check_unbound()
             uri = await client.new_account(EMAIL)
             assert uri is not None
@@ -116,17 +116,17 @@ def test_new_and_deactivate_account() -> None:
 
 
 def test_get_public_key() -> None:
-    key = ACMEClient.get_key()
+    key = AcmeClient.get_key()
     assert key
     assert isinstance(key, JWKRSA)
 
 
 def test_already_registered() -> None:
     async def inner():
-        async with ACMEClient(
+        async with AcmeClient(
             DIRECTORY, key=KEY, account_url="http://127.0.0.1/"
         ) as client:
-            with pytest.raises(ACMEAlreadyRegistered):
+            with pytest.raises(AcmeAlreadyRegistered):
                 await client.new_account(EMAIL)
 
     asyncio.run(inner())
@@ -179,27 +179,27 @@ class BuggyHttpClient(object):
         await self._blackhole()
 
 
-class BlackholeACMEClient(ACMEClient):
+class BlackholeAcmeClient(AcmeClient):
     DEFAULT_TIMEOUT = 0.0001
 
     def _get_client(self) -> BlackholeHttpClient:
         return BlackholeHttpClient()
 
 
-class BlackholeACMEClientBadNonce(BlackholeACMEClient):
+class BlackholeAcmeClientBadNonce(BlackholeAcmeClient):
     async def _post_once(self, url: str, data: Dict[str, Any]) -> Response:
-        raise ACMEBadNonceError()
+        raise AcmeBadNonceError()
 
 
-class BuggyACMEClient(ACMEClient):
+class BuggyAcmeClient(AcmeClient):
     def _get_client(self) -> BuggyHttpClient:
         return BuggyHttpClient()
 
 
 def test_get_directory_timeout():
     async def inner():
-        async with BlackholeACMEClient(DIRECTORY, key=KEY) as client:
-            with pytest.raises(ACMETimeoutError):
+        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
+            with pytest.raises(AcmeTimeoutError):
                 await client._get_directory()
 
     asyncio.run(inner())
@@ -207,8 +207,8 @@ def test_get_directory_timeout():
 
 def test_get_directory_error():
     async def inner():
-        async with BuggyACMEClient(DIRECTORY, key=KEY) as client:
-            with pytest.raises(ACMEConnectError):
+        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
+            with pytest.raises(AcmeConnectError):
                 await client._get_directory()
 
     asyncio.run(inner())
@@ -216,8 +216,8 @@ def test_get_directory_error():
 
 def test_head_timeout():
     async def inner():
-        async with BlackholeACMEClient(DIRECTORY, key=KEY) as client:
-            with pytest.raises(ACMETimeoutError):
+        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
+            with pytest.raises(AcmeTimeoutError):
                 await client._head("")
 
     asyncio.run(inner())
@@ -225,8 +225,8 @@ def test_head_timeout():
 
 def test_head_error():
     async def inner():
-        async with BuggyACMEClient(DIRECTORY, key=KEY) as client:
-            with pytest.raises(ACMEConnectError):
+        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
+            with pytest.raises(AcmeConnectError):
                 await client._head("")
 
     asyncio.run(inner())
@@ -234,12 +234,12 @@ def test_head_error():
 
 def test_post_timeout():
     async def inner():
-        async with BlackholeACMEClient(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
-            with pytest.raises(ACMETimeoutError):
+            with pytest.raises(AcmeTimeoutError):
                 await client._post("", {})
 
     asyncio.run(inner())
@@ -247,12 +247,12 @@ def test_post_timeout():
 
 def test_post_error():
     async def inner():
-        async with BuggyACMEClient(DIRECTORY, key=KEY) as client:
+        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
-            with pytest.raises(ACMEConnectError):
+            with pytest.raises(AcmeConnectError):
                 await client._post("", {})
 
     asyncio.run(inner())
@@ -260,12 +260,12 @@ def test_post_error():
 
 def test_post_retry():
     async def inner():
-        async with BlackholeACMEClientBadNonce(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClientBadNonce(DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
             )
-            with pytest.raises(ACMEBadNonceError):
+            with pytest.raises(AcmeBadNonceError):
                 await client._post("", {})
 
     asyncio.run(inner())
@@ -284,7 +284,7 @@ def test_post_retry():
 def test_email_to_contacts(
     email: Union[str, List[str]], expected: List[str]
 ) -> None:
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     r = client._email_to_contacts(email)
     assert r == expected
 
@@ -305,43 +305,43 @@ def test_email_to_contacts(
 def test_domain_to_identifiers(
     domain: Union[str, List[str]], expected: List[str]
 ) -> None:
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     r = client._domain_to_identifiers(domain)
     assert r == expected
 
 
 def test_check_response_err_no_json() -> None:
     resp = Response(400, text="foobar")
-    with pytest.raises(ACMEUndecodableError):
-        ACMEClient._check_response(resp)
+    with pytest.raises(AcmeUndecodableError):
+        AcmeClient._check_response(resp)
 
 
 @pytest.mark.parametrize(
     ("j", "etype"),
     [
-        ({"type": "urn:ietf:params:acme:error:badNonce"}, ACMEBadNonceError),
+        ({"type": "urn:ietf:params:acme:error:badNonce"}, AcmeBadNonceError),
         (
             {"type": "urn:ietf:params:acme:error:rateLimited"},
-            ACMERateLimitError,
+            AcmeRateLimitError,
         ),
         (
             {"type": "urn:ietf:params:acme:error:badSignatureAlgorithm"},
-            ACMEError,
+            AcmeError,
         ),
         (
             {"type": "urn:ietf:params:acme:error:unauthorized"},
-            ACMEUnauthorizedError,
+            AcmeUnauthorizedError,
         ),
     ],
 )
 def test_check_response_err(j, etype):
     resp = Response(400, json=j)
     with pytest.raises(etype):
-        ACMEClient._check_response(resp)
+        AcmeClient._check_response(resp)
 
 
 def test_nonce_from_response():
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
@@ -351,7 +351,7 @@ def test_nonce_from_response():
 
 
 def test_nonce_from_response_none():
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200)
     client._nonce_from_response(resp)
@@ -359,19 +359,19 @@ def test_nonce_from_response_none():
 
 
 def test_nonce_from_response_decode_error():
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "x"})
-    with pytest.raises(ACMEBadNonceError):
+    with pytest.raises(AcmeBadNonceError):
         client._nonce_from_response(resp)
 
 
 def test_nonce_from_response_duplicated():
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
-    with pytest.raises(ACMEError):
+    with pytest.raises(AcmeError):
         client._nonce_from_response(resp)
 
 
@@ -427,7 +427,7 @@ vg7UmBLEg8EzZWz8kdYZm6iaQytVKcJkj+5P0OacZ9fsw3GcrFs0LlHPLQ+sazO8kRg="""
 
 
 def test_pem_to_ber():
-    der = ACMEClient._pem_to_der(TEST_CSR_PEM)
+    der = AcmeClient._pem_to_der(TEST_CSR_PEM)
     expected = base64.b64decode(TEST_CSR_DER)
     assert der == expected
 
@@ -440,13 +440,13 @@ def test_sign_no_fulfilment():
     async def inner():
         csr_pem = get_csr_pem(domain)
         #
-        pk = ACMEClient.get_key()
-        async with ACMEClient(DIRECTORY, key=pk) as client:
+        pk = AcmeClient.get_key()
+        async with AcmeClient(DIRECTORY, key=pk) as client:
             # Register account
             uri = await client.new_account(EMAIL)
             assert uri
             # Create new order
-            with pytest.raises(ACMEFulfillmentFailed):
+            with pytest.raises(AcmeFulfillmentFailed):
                 await client.sign(domain, csr_pem)
             # Deactivate account
             await client.deactivate_account()
@@ -459,8 +459,8 @@ def test_sign_no_fulfilment():
     "ch_type", ["http-01", "dns-01", "tls-alpn-01", "invalid"]
 )
 def test_default_fulfilment(ch_type: str) -> None:
-    chall = ACMEChallenge(type=ch_type, url="", token="")
-    client = ACMEClient(DIRECTORY, key=KEY)
+    chall = AcmeChallenge(type=ch_type, url="", token="")
+    client = AcmeClient(DIRECTORY, key=KEY)
     r = asyncio.run(client.fulfill_challenge("example.com", chall))
     assert r is False
 
@@ -469,24 +469,24 @@ def test_default_fulfilment(ch_type: str) -> None:
     "ch_type", ["http-01", "dns-01", "tls-alpn-01", "invalid"]
 )
 def test_default_clear(ch_type: str) -> None:
-    chall = ACMEChallenge(type=ch_type, url="", token="")
-    client = ACMEClient(DIRECTORY, key=KEY)
+    chall = AcmeChallenge(type=ch_type, url="", token="")
+    client = AcmeClient(DIRECTORY, key=KEY)
     asyncio.run(client.clear_challenge("example.com", chall))
 
 
 def test_get_csr() -> None:
-    private_key = ACMEClient.get_domain_private_key()
+    private_key = AcmeClient.get_domain_private_key()
     assert b"BEGIN RSA PRIVATE KEY" in private_key
     assert b"END RSA PRIVATE KEY" in private_key
-    csr = ACMEClient.get_domain_csr("example.com", private_key)
+    csr = AcmeClient.get_domain_csr("example.com", private_key)
     assert b"BEGIN CERTIFICATE REQUEST" in csr
     assert b"END CERTIFICATE REQUEST" in csr
 
 
 def test_state1() -> None:
-    client = ACMEClient(DIRECTORY, key=KEY)
+    client = AcmeClient(DIRECTORY, key=KEY)
     state = client.get_state()
-    client2 = ACMEClient.from_state(state)
+    client2 = AcmeClient.from_state(state)
     assert client is not client2
     assert client._directory == client2._directory
     assert client._key == client2._key
@@ -494,11 +494,11 @@ def test_state1() -> None:
 
 
 def test_state2() -> None:
-    client = ACMEClient(
+    client = AcmeClient(
         DIRECTORY, key=KEY, account_url="https://127.0.0.1/acc"
     )
     state = client.get_state()
-    client2 = ACMEClient.from_state(state)
+    client2 = AcmeClient.from_state(state)
     assert client is not client2
     assert client._directory == client2._directory
     assert client._key == client2._key
@@ -507,11 +507,11 @@ def test_state2() -> None:
 
 def test_invalid_order_status() -> None:
     resp = httpx.Response(200, json={"status": "invalid"})
-    with pytest.raises(ACMECertificateError):
-        ACMEClient._get_order_status(resp)
+    with pytest.raises(AcmeCertificateError):
+        AcmeClient._get_order_status(resp)
 
 
 def test_valid_order_status() -> None:
     resp = httpx.Response(200, json={"status": "valid"})
-    s = ACMEClient._get_order_status(resp)
+    s = AcmeClient._get_order_status(resp)
     assert s == "valid"

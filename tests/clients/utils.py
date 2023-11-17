@@ -9,7 +9,7 @@ import os
 from typing import Iterable
 
 # Gufo ACME modules
-from gufo.acme.clients.base import ACMEClient
+from gufo.acme.clients.base import AcmeClient
 from josepy.jwk import JWKRSA
 
 EMAIL = "acme-000000000@gufolabs.com"
@@ -58,5 +58,5 @@ def not_set_reason(vars: Iterable[str]) -> str:
 
 def get_csr_pem(domain: str) -> bytes:
     """Generate CSR for domain in PEM format."""
-    private_key = ACMEClient.get_domain_private_key()
-    return ACMEClient.get_domain_csr(domain, private_key)
+    private_key = AcmeClient.get_domain_private_key()
+    return AcmeClient.get_domain_csr(domain, private_key)

@@ -50,7 +50,7 @@ The code is straightforward:
 --8<-- "examples/acme_sign.py::6"
 ```
 
-ACMEClient is an asynchronous client, so we
+AcmeClient is an asynchronous client, so we
 need `asyncio.run()` function to launch it.
 
 ```  py title="acme_sign.py" linenums="1" hl_lines="2"
@@ -74,12 +74,12 @@ Import `sys` module to parse the CLI argument.
 --8<-- "examples/acme_sign.py::6"
 ```
 
-Then we import an `ACMEClient` itself.
+Then we import an `AcmeClient` itself.
 
 ```  py title="acme_sign.py" linenums="1" hl_lines="6"
 --8<-- "examples/acme_sign.py::6"
 ```
-We also need an `ACMEChallenge` type.
+We also need an `AcmeChallenge` type.
 
 ```  py title="acme_sign.py" linenums="6" hl_lines="3"
 --8<-- "examples/acme_sign.py:6:11"
@@ -101,7 +101,7 @@ We need to provide the implementation of the challenge
 fulfillment. The Gufo ACME's API provides special
 methods which can be overriden in subclasses to
 implement the desired behavior. So we are creating
-a subclass of `ACMEClient`.
+a subclass of `AcmeClient`.
 
 ```  py title="acme_sign.py" linenums="11" hl_lines="2 3 4"
 --8<-- "examples/acme_sign.py:11:23"
@@ -111,7 +111,7 @@ We're implementing `http-01` challenge, so we need to override
 so we use any async function inside. It accepts two parameters:
 
 * `domain` - a domain name.
-* `challenge` - a ACMEChallenge structure, which has
+* `challenge` - a AcmeChallenge structure, which has
     a `token` field, containing challenge token.
 
 Function returns `True` when fulfillment has beed processed correctly,
@@ -123,7 +123,7 @@ or `False`, if we wan't provide a fulfillment.
 According the ACME protocol, we need to place a specially formed
 data to prove our authority. The data contain challenge token and
 the fingerprint of the client's key. The calculation may be tricky,
-but Gufo ACME provides a `ACMEClient.get_key_authorization()` method,
+but Gufo ACME provides a `AcmeClient.get_key_authorization()` method,
 which performs all necessary calculations. So we pass `challenge`
 parameter and grab an authorization data as value of the variable `v`.
 
@@ -143,13 +143,13 @@ and ready to start validation.
 --8<-- "examples/acme_sign.py:11:23"
 ```
 The ACME protocol definition exlicitly notes that client may
-clean up prepared data after the validation. `ACMEClient`
+clean up prepared data after the validation. `AcmeClient`
 allows to add own cleanup code by overriding `cleanup_*`
 methods. In our case we're overriding `clear_http_01` method.
 Just like `fulfill_http_01`, it accepts two parameters:
 
 * `domain` - a domain name.
-* `challenge` - a ACMEChallenge structure, which has
+* `challenge` - a AcmeChallenge structure, which has
     a `token` field, containing challenge token.
 
 ```  py title="acme_sign.py" linenums="11" hl_lines="13"
@@ -189,9 +189,9 @@ is binary so we're opening the file in `rb` mode.
 ```  py title="acme_sign.py" linenums="26" hl_lines="8"
 --8<-- "examples/acme_sign.py:26:36"
 ```
-We're instantiating `ACMEClient` directly from state by
+We're instantiating `AcmeClient` directly from state by
 using `from_state()` method. Note, we're restoring state
-not into the `ACMEClient`, but in our `SignACMEClient` subclass.
+not into the `AcmeClient`, but in our `SignAcmeClient` subclass.
 The new `client` instance
 loads the private key, directory, and account information
 directly from state.
@@ -199,7 +199,7 @@ directly from state.
 ```  py title="acme_sign.py" linenums="26" hl_lines="9"
 --8<-- "examples/acme_sign.py:26:36"
 ```
-And finally, we call an `ACMEClient.sign` method, which
+And finally, we call an `AcmeClient.sign` method, which
 accepts domain name and CSR. The `sign` method simple
 hides all the protocol's complexity and simply returns
 us a signed certificate in PEM format.

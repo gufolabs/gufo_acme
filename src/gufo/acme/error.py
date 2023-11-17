@@ -4,52 +4,52 @@
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
 
-"""ACMEClient error classes."""
+"""AcmeClient error classes."""
 
 
-class ACMEError(Exception):
+class AcmeError(Exception):
     """Base class for all Gufo Acme errors."""
 
 
-class ACMEBadNonceError(ACMEError):
+class AcmeBadNonceError(AcmeError):
     """Server rejects a nounce as invalid."""
 
 
-class ACMETimeoutError(ACMEError):
+class AcmeTimeoutError(AcmeError):
     """Operation timed out."""
 
 
-class ACMEConnectError(ACMEError):
+class AcmeConnectError(AcmeError):
     """Failed to connect ACME server."""
 
 
-class ACMERateLimitError(ACMEError):
+class AcmeRateLimitError(AcmeError):
     """Request rate limit exceeded."""
 
 
-class ACMEAlreadyRegistered(ACMEError):
+class AcmeAlreadyRegistered(AcmeError):
     """Client is alredy registered."""
 
 
-class ACMEUndecodableError(ACMEError):
+class AcmeUndecodableError(AcmeError):
     """Cannot decode an error message."""
 
 
-class ACMEAuthorizationError(ACMEError):
+class AcmeAuthorizationError(AcmeError):
     """Failed to pass an authorization."""
 
 
-class ACMEFulfillmentFailed(ACMEError):
+class AcmeFulfillmentFailed(AcmeError):
     """Failed to fulfill challenge."""
 
 
-class ACMENotRegistredError(ACMEError):
+class AcmeNotRegistredError(AcmeError):
     """Client is not registred."""
 
 
-class ACMEUnauthorizedError(ACMEError):
+class AcmeUnauthorizedError(AcmeError):
     """Request is not authorized."""
 
 
-class ACMECertificateError(ACMEError):
+class AcmeCertificateError(AcmeError):
     """Failed to finalize."""

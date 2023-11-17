@@ -18,7 +18,7 @@ The code is straightforward:
 --8<-- "examples/acme_register.py"
 ```
 
-ACMEClient is an asynchronous client, so we
+AcmeClient is an asynchronous client, so we
 need `asyncio.run()` function to launch it.
 
 
@@ -37,7 +37,7 @@ Import `sys` module to parse the CLI argument.
 --8<-- "examples/acme_register.py"
 ```
 
-Then we import an `ACMEClient` itself.
+Then we import an `AcmeClient` itself.
 
 ```  py title="acme_register.py" linenums="1" hl_lines="6"
 --8<-- "examples/acme_register.py"
@@ -71,13 +71,13 @@ the following parameters:
 ```
 The client uses secret key to sign all communications to
 the server. Later, this key will be bound to account.
-We use `ACMEClient.get_key()` function to generate
+We use `AcmeClient.get_key()` function to generate
 a new key.
 
 ```  py title="acme_register.py" linenums="1" hl_lines="11"
 --8<-- "examples/acme_register.py"
 ```
-`ACMEClient` requires two mandatory parameters:
+`AcmeClient` requires two mandatory parameters:
 
 * ACME Directory URL.
 * The client key.

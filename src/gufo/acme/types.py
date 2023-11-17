@@ -12,7 +12,7 @@ from typing import List, Optional
 
 
 @dataclass
-class ACMEAuthorization(object):
+class AcmeAuthorization(object):
     """
     ACME Authorization resource.
 
@@ -26,7 +26,7 @@ class ACMEAuthorization(object):
 
 
 @dataclass
-class ACMEOrder(object):
+class AcmeOrder(object):
     """
     ACME order resource.
 
@@ -35,12 +35,12 @@ class ACMEOrder(object):
         finalize: URL to finalize the order.
     """
 
-    authorizations: List[ACMEAuthorization]
+    authorizations: List[AcmeAuthorization]
     finalize: str
 
 
 @dataclass
-class ACMEChallenge(object):
+class AcmeChallenge(object):
     """
     ACME challenge resource.
 
@@ -56,7 +56,7 @@ class ACMEChallenge(object):
 
 
 @dataclass
-class ACMEDirectory(object):
+class AcmeDirectory(object):
     """
     ACME directory.
 

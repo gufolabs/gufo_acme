@@ -1,10 +1,10 @@
 import sys
 
-from gufo.acme.clients.base import ACMEClient
+from gufo.acme.clients.base import AcmeClient
 
 
 def main(path: str) -> None:
-    pk = ACMEClient.get_domain_private_key()
+    pk = AcmeClient.get_domain_private_key()
     with open(path, "wb") as fp:
         fp.write(pk)
 

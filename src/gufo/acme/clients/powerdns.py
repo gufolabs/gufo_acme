@@ -14,17 +14,16 @@ import httpx
 # Third-party modules
 from josepy.json_util import encode_b64jose
 
-from ..error import ACMEFulfillmentFailed
-
 # Gufo ACME modules
+from ..error import AcmeFulfillmentFailed
 from ..log import logger
-from ..types import ACMEChallenge
-from .base import ACMEClient
+from ..types import AcmeChallenge
+from .base import AcmeClient
 
 RESP_NO_CONTENT = 204
 
 
-class PowerDnsAcmeClient(ACMEClient):
+class PowerDnsAcmeClient(AcmeClient):
     """
     PowerDNS compatible ACME Client.
 
@@ -59,10 +58,10 @@ class PowerDnsAcmeClient(ACMEClient):
         if resp.status_code != RESP_NO_CONTENT:
             msg = f"Failed to fulfill: Server returned {resp}"
             logger.error(msg)
-            raise ACMEFulfillmentFailed(msg)
+            raise AcmeFulfillmentFailed(msg)
 
     async def fulfill_dns_01(
-        self: "PowerDnsAcmeClient", domain: str, challenge: ACMEChallenge
+        self: "PowerDnsAcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Fulfill dns-01 challenge.
@@ -71,13 +70,13 @@ class PowerDnsAcmeClient(ACMEClient):
 
         Args:
             domain: Domain name
-            challenge: ACMEChallenge instance, containing token.
+            challenge: AcmeChallenge instance, containing token.
 
         Returns:
             True - on succeess.
 
         Raises:
-            ACMEFulfillmentFailed: On error.
+            AcmeFulfillmentFailed: On error.
         """
         # Calculate value
         v = encode_b64jose(

@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------
-# Gufo ACME: DAVACMEClient implementation
+# Gufo ACME: DavAcmeClient implementation
 # ---------------------------------------------------------------------
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
-"""A DAVACMEClient implementation."""
+"""A DavAcmeClient implementation."""
 
 # Python modules
 from typing import Any
@@ -11,16 +11,16 @@ from typing import Any
 # Third-party modules
 import httpx
 
-from ..error import ACMEFulfillmentFailed
+from ..error import AcmeFulfillmentFailed
 
 # Gufo ACME modules
-from ..types import ACMEChallenge
-from .base import ACMEClient
+from ..types import AcmeChallenge
+from .base import AcmeClient
 
 HTTP_MAX_VALID = 299
 
 
-class DAVACMEClient(ACMEClient):
+class DavAcmeClient(AcmeClient):
     """
     WebDAV-compatible ACME Client.
 
@@ -36,7 +36,7 @@ class DAVACMEClient(ACMEClient):
     """
 
     def __init__(
-        self: "DAVACMEClient",
+        self: "DavAcmeClient",
         directory_url: str,
         *,
         username: str,
@@ -47,7 +47,7 @@ class DAVACMEClient(ACMEClient):
         self.username = username
         self.password = password
 
-    def get_auth(self: "DAVACMEClient") -> httpx.Auth:
+    def get_auth(self: "DavAcmeClient") -> httpx.Auth:
         """
         Get Auth for request.
 
@@ -69,10 +69,10 @@ class DAVACMEClient(ACMEClient):
         """
         if resp.status_code > HTTP_MAX_VALID:
             msg = f"Failed to put challenge: code {resp.status_code}"
-            raise ACMEFulfillmentFailed(msg)
+            raise AcmeFulfillmentFailed(msg)
 
     async def fulfill_http_01(
-        self: "DAVACMEClient", domain: str, challenge: ACMEChallenge
+        self: "DavAcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Perform http-01 fullfilment.
@@ -81,13 +81,13 @@ class DAVACMEClient(ACMEClient):
 
         Args:
             domain: Domain name
-            challenge: ACMEChallenge instance, containing token.
+            challenge: AcmeChallenge instance, containing token.
 
         Returns:
             True - on succeess
 
         Raises:
-            ACMEFulfillmentFailed: On error.
+            AcmeFulfillmentFailed: On error.
         """
         async with self._get_client() as client:
             v = self.get_key_authorization(challenge)
@@ -100,17 +100,17 @@ class DAVACMEClient(ACMEClient):
         return True
 
     async def clear_http_01(
-        self: "DAVACMEClient", domain: str, challenge: ACMEChallenge
+        self: "DavAcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Remove provisioned token.
 
         Args:
             domain: Domain name
-            challenge: ACMEChallenge instance, containing token.
+            challenge: AcmeChallenge instance, containing token.
 
         Raises:
-            ACMEFulfillmentFailed: On error.
+            AcmeFulfillmentFailed: On error.
         """
         async with self._get_client() as client:
             resp = await client.delete(

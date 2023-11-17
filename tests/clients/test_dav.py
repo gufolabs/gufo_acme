@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------
-# CSR Proxy: DAVACMEClient client tests
+# CSR Proxy: DavAcmeClient client tests
 # ---------------------------------------------------------------------
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
@@ -14,9 +14,9 @@ import httpx
 import pytest
 
 # Gufo ACME modules
-from gufo.acme.clients.base import ACMEClient
-from gufo.acme.clients.dav import DAVACMEClient
-from gufo.acme.error import ACMEFulfillmentFailed
+from gufo.acme.clients.base import AcmeClient
+from gufo.acme.clients.dav import DavAcmeClient
+from gufo.acme.error import AcmeFulfillmentFailed
 
 from .utils import DIRECTORY, EMAIL, get_csr_pem, not_set, not_set_reason
 
@@ -35,8 +35,8 @@ def test_sign():
     async def inner():
         csr_pem = get_csr_pem(domain)
         #
-        pk = DAVACMEClient.get_key()
-        async with DAVACMEClient(
+        pk = DavAcmeClient.get_key()
+        async with DavAcmeClient(
             DIRECTORY,
             username=os.getenv(ENV_CI_DAV_TEST_USER),
             password=os.getenv(ENV_CI_DAV_TEST_PASSWORD),
@@ -58,16 +58,16 @@ def test_sign():
 
 
 def test_state():
-    client = ACMEClient(
+    client = AcmeClient(
         DIRECTORY,
-        key=DAVACMEClient.get_key(),
+        key=DavAcmeClient.get_key(),
     )
     state = client.get_state()
-    client2 = DAVACMEClient.from_state(state, username="user", password="pass")
-    assert isinstance(client2, DAVACMEClient)
+    client2 = DavAcmeClient.from_state(state, username="user", password="pass")
+    assert isinstance(client2, DavAcmeClient)
 
 
 def test_invalid_response():
     resp = httpx.Response(400)
-    with pytest.raises(ACMEFulfillmentFailed):
-        DAVACMEClient._check_dav_response(resp)
+    with pytest.raises(AcmeFulfillmentFailed):
+        DavAcmeClient._check_dav_response(resp)

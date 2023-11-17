@@ -14,13 +14,13 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## Added
 
-* DAVACMEClient: http-01 fulfillment using WebDAV
+* DavAcmeClient: http-01 fulfillment using WebDAV
 * PowerDnsAcmeClient: dns-01 fulfillment using PowerDNS.
-* WEBACMEClient: http-01 fulfillment using static files.
+* WEBAcmeClient: http-01 fulfillment using static files.
 
 ## Changed
 
-* ACMEClient has been moved into `gufo.acme.clients.base`.
+* AcmeClient has been moved into `gufo.acme.clients.base`.
 
 ## Fixed
 
@@ -30,8 +30,8 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ### Fixed
 
-* Fixed `ACMEClient.from_state()` to return a proper subclass.
-* Fixed type annotation for `ACMEClient.__aenter__()` in subclasses.
+* Fixed `AcmeClient.from_state()` to return a proper subclass.
+* Fixed type annotation for `AcmeClient.__aenter__()` in subclasses.
 
 ## 0.1.0 - 2023-11-15
 

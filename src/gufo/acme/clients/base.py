@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------
-# Gufo ACME: ACMEClient implementation
+# Gufo ACME: AcmeClient implementation
 # ---------------------------------------------------------------------
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
-"""An ACMEClient implementation."""
+"""An AcmeClient implementation."""
 # Python modules
 import asyncio
 import json
@@ -44,42 +44,42 @@ from josepy.jwk import JWK, JWKRSA
 from .. import __version__
 from ..acme import AcmeJWS
 from ..error import (
-    ACMEAlreadyRegistered,
-    ACMEAuthorizationError,
-    ACMEBadNonceError,
-    ACMECertificateError,
-    ACMEConnectError,
-    ACMEError,
-    ACMEFulfillmentFailed,
-    ACMENotRegistredError,
-    ACMERateLimitError,
-    ACMETimeoutError,
-    ACMEUnauthorizedError,
-    ACMEUndecodableError,
+    AcmeAlreadyRegistered,
+    AcmeAuthorizationError,
+    AcmeBadNonceError,
+    AcmeCertificateError,
+    AcmeConnectError,
+    AcmeError,
+    AcmeFulfillmentFailed,
+    AcmeNotRegistredError,
+    AcmeRateLimitError,
+    AcmeTimeoutError,
+    AcmeUnauthorizedError,
+    AcmeUndecodableError,
 )
 from ..log import logger
-from ..types import ACMEAuthorization, ACMEChallenge, ACMEDirectory, ACMEOrder
+from ..types import AcmeAuthorization, AcmeChallenge, AcmeDirectory, AcmeOrder
 
 BAD_REQUEST = 400
 T = TypeVar("T")
-CT = TypeVar("CT", bound="ACMEClient")
+CT = TypeVar("CT", bound="AcmeClient")
 
 
-class ACMEClient(object):
+class AcmeClient(object):
     """
     ACME Client.
 
     Examples:
     Create new account:
     ``` python
-    async with ACMEClient(directory, key=key) as client:
+    async with AcmeClient(directory, key=key) as client:
         uri = await client.new_account("test@example.com")
     ```
     Sign an CSR:
     ``` python
-    class SignClient(ACMEClient):
+    class SignClient(AcmeClient):
         async def fulfill_http_01(
-            self, domain: str, challenge: ACMEChallenge
+            self, domain: str, challenge: AcmeChallenge
         ) -> bool:
             # do something useful
             return True
@@ -99,11 +99,11 @@ class ACMEClient(object):
     Args:
         directory_url: An URL to ACME directory.
         key: JWK private key. The compatible key may be generated
-            by the [gufo.acme.clients.base.ACMEClient.get_key][] function.
+            by the [gufo.acme.clients.base.AcmeClient.get_key][] function.
         alg: Signing algorithm to use.
         account_url: Optional ACME account URL, cotaining the
             stored result of the previous call to the
-            [gufo.acme.clients.base.ACMEClient.new_account][] function.
+            [gufo.acme.clients.base.AcmeClient.new_account][] function.
         timeout: Network requests timeout in seconds.
         user_agent: Override default User-Agent header.
     """
@@ -115,7 +115,7 @@ class ACMEClient(object):
     DEFAULT_SIGNATURE = RS256
 
     def __init__(
-        self: "ACMEClient",
+        self: "AcmeClient",
         directory_url: str,
         *,
         key: JWK,
@@ -125,7 +125,7 @@ class ACMEClient(object):
         user_agent: Optional[str] = None,
     ) -> None:
         self._directory_url = directory_url
-        self._directory: Optional[ACMEDirectory] = None
+        self._directory: Optional[AcmeDirectory] = None
         self._key = key
         self._alg = alg or self.DEFAULT_SIGNATURE
         self._account_url = account_url
@@ -139,14 +139,14 @@ class ACMEClient(object):
 
         Examples:
             ``` py
-            async with ACMEClient(....) as client:
+            async with AcmeClient(....) as client:
                 ...
             ```
         """
         return self
 
     async def __aexit__(
-        self: "ACMEClient",
+        self: "AcmeClient",
         exc_t: Optional[Type[BaseException]],
         exc_v: Optional[BaseException],
         exc_tb: Optional[TracebackType],
@@ -154,14 +154,14 @@ class ACMEClient(object):
         """Asynchronous context exit."""
         return
 
-    def is_bound(self: "ACMEClient") -> bool:
+    def is_bound(self: "AcmeClient") -> bool:
         """
         Check if the client is bound to the account.
 
         The client may be bound to account either:
 
         * By setting `account_url` in constructor.
-        * By calling [gufo.acme.clients.base.ACMEClient.new_account][]
+        * By calling [gufo.acme.clients.base.AcmeClient.new_account][]
 
         Returns:
             True - if the client is bound to account,
@@ -169,27 +169,27 @@ class ACMEClient(object):
         """
         return self._account_url is not None
 
-    def _check_bound(self: "ACMEClient") -> None:
+    def _check_bound(self: "AcmeClient") -> None:
         """
         Check the client is bound to account.
 
         Raises:
-            ACMENotRegistredError: if client is not bound.
+            AcmeNotRegistredError: if client is not bound.
         """
         if not self.is_bound():
-            raise ACMENotRegistredError
+            raise AcmeNotRegistredError
 
-    def _check_unbound(self: "ACMEClient") -> None:
+    def _check_unbound(self: "AcmeClient") -> None:
         """
         Check the client is not  bound to account.
 
         Raises:
-            ACMEAlreadyRegistered: if client is bound.
+            AcmeAlreadyRegistered: if client is bound.
         """
         if self.is_bound():
-            raise ACMEAlreadyRegistered
+            raise AcmeAlreadyRegistered
 
-    def _get_client(self: "ACMEClient") -> httpx.AsyncClient:
+    def _get_client(self: "AcmeClient") -> httpx.AsyncClient:
         """
         Get a HTTP client instance.
 
@@ -208,20 +208,20 @@ class ACMEClient(object):
         try:
             return await asyncio.wait_for(fut, timeout)
         except asyncio.TimeoutError as e:
-            raise ACMETimeoutError from e
+            raise AcmeTimeoutError from e
 
-    async def _get_directory(self: "ACMEClient") -> ACMEDirectory:
+    async def _get_directory(self: "AcmeClient") -> AcmeDirectory:
         """
         Get and ACME directory.
 
         Caches response to fetch request only once.
 
         Returns:
-            ACMEDirectory instance containing URLs
+            AcmeDirectory instance containing URLs
             for ACME server.
 
         Raises:
-            ACMEError: In case of the errors.
+            AcmeError: In case of the errors.
         """
         if self._directory is not None:
             return self._directory
@@ -234,10 +234,10 @@ class ACMEClient(object):
                     client.get(self._directory_url), self._timeout
                 )
             except httpx.HTTPError as e:
-                raise ACMEConnectError from e
+                raise AcmeConnectError from e
             self._check_response(r)
             data = r.json()
-        self._directory = ACMEDirectory(
+        self._directory = AcmeDirectory(
             new_account=data["newAccount"],
             new_nonce=data.get("newNonce"),
             new_order=data["newOrder"],
@@ -260,7 +260,7 @@ class ACMEClient(object):
         return [f"mailto:{m}" for m in email]
 
     async def new_account(
-        self: "ACMEClient", email: Union[str, Iterable[str]]
+        self: "AcmeClient", email: Union[str, Iterable[str]]
     ) -> str:
         """
         Create new account.
@@ -272,14 +272,14 @@ class ACMEClient(object):
             Create an account with single contact email:
 
             ``` python
-            async with ACMEClient(directory, key=key) as client:
+            async with AcmeClient(directory, key=key) as client:
                 uri = await client.new_account("test@example.com")
             ```
 
             Create an account with multiple contact emails:
 
             ``` python
-            async with ACMEClient(directory, key=key) as client:
+            async with AcmeClient(directory, key=key) as client:
                 uri = await client.new_account([
                     "ca@example.com",
                     "boss@example.com"
@@ -294,8 +294,8 @@ class ACMEClient(object):
                 to the ACME client.
 
         Raises:
-            ACMEError: In case of the errors.
-            ACMEAlreadyRegistered: If an client is already bound to account.
+            AcmeError: In case of the errors.
+            AcmeAlreadyRegistered: If an client is already bound to account.
         """
         # Build contacts
         contacts = self._email_to_contacts(email)
@@ -315,7 +315,7 @@ class ACMEClient(object):
         self._account_url = resp.headers["Location"]
         return self._account_url
 
-    async def deactivate_account(self: "ACMEClient") -> None:
+    async def deactivate_account(self: "AcmeClient") -> None:
         """
         Deactivate account.
 
@@ -324,7 +324,7 @@ class ACMEClient(object):
         issuance or access resources related to the account,
         such as orders or authorizations.
 
-        To call `deactivate_account` ACMEClient must be bound
+        To call `deactivate_account` AcmeClient must be bound
         to acount either via `account_url` option or
         via `new_account` call. After successfully processing
         a client will be unbound from account.
@@ -333,7 +333,7 @@ class ACMEClient(object):
             Deactivate account:
 
             ``` python
-            async with ACMEClient(
+            async with AcmeClient(
                 directory, key=key,
                 account_url=url
             ) as client:
@@ -341,8 +341,8 @@ class ACMEClient(object):
             ```
 
         Raises:
-            ACMEError: In case of the errors.
-            ACMENotRegistred: If the client is not bound to account.
+            AcmeError: In case of the errors.
+            AcmeNotRegistred: If the client is not bound to account.
         """
         logger.warning("Deactivating account: %s", self._account_url)
         # Check account is really bound
@@ -374,8 +374,8 @@ class ACMEClient(object):
         return [{"type": "dns", "value": d} for d in domain]
 
     async def new_order(
-        self: "ACMEClient", domain: Union[str, Iterable[str]]
-    ) -> ACMEOrder:
+        self: "AcmeClient", domain: Union[str, Iterable[str]]
+    ) -> AcmeOrder:
         """
         Create new order.
 
@@ -389,7 +389,7 @@ class ACMEClient(object):
             Order for single domain:
 
             ``` python
-            async with ACMEClient(
+            async with AcmeClient(
                 directory,
                 key=key,
                 account_url=account_url
@@ -400,7 +400,7 @@ class ACMEClient(object):
             Order for multiple domains:
 
             ``` py
-            async with ACMEClient(
+            async with AcmeClient(
                 directory,
                 key=key,
                 account_url=account_url
@@ -416,10 +416,10 @@ class ACMEClient(object):
                 yielding domains.
 
         Returns:
-            An ACMEOrder object.
+            An AcmeOrder object.
 
         Raises:
-            ACMEError: In case of the errors.
+            AcmeError: In case of the errors.
         """
         # Expand identifiers
         identifiers = self._domain_to_identifiers(domain)
@@ -434,17 +434,17 @@ class ACMEClient(object):
         resp = await self._post(d.new_order, {"identifiers": identifiers})
         data = resp.json()
         #
-        return ACMEOrder(
+        return AcmeOrder(
             authorizations=[
-                ACMEAuthorization(domain=i["value"], url=a)
+                AcmeAuthorization(domain=i["value"], url=a)
                 for i, a in zip(identifiers, data["authorizations"])
             ],
             finalize=data["finalize"],
         )
 
     async def get_challenges(
-        self: "ACMEClient", auth: ACMEAuthorization
-    ) -> List[ACMEChallenge]:
+        self: "AcmeClient", auth: AcmeAuthorization
+    ) -> List[AcmeChallenge]:
         """
         Get a challenge for an authoriations.
 
@@ -452,7 +452,7 @@ class ACMEClient(object):
 
         Examples:
             ``` python
-            async with ACMEClient(
+            async with AcmeClient(
                 directory,
                 key=key,
                 account_url=account_url
@@ -466,26 +466,26 @@ class ACMEClient(object):
             ```
 
         Args:
-            auth: ACMEAuthorization object, usually from
-                ACMEOrder.authorizations.
+            auth: AcmeAuthorization object, usually from
+                AcmeOrder.authorizations.
 
         Returns:
-            List of ACMEChallenge.
+            List of AcmeChallenge.
 
         Raises:
-            ACMEError: In case of the errors.
+            AcmeError: In case of the errors.
         """
         logger.warning("Getting challenges for %s", auth.domain)
         self._check_bound()
         resp = await self._post(auth.url, None)
         data = resp.json()
         return [
-            ACMEChallenge(type=d["type"], url=d["url"], token=d["token"])
+            AcmeChallenge(type=d["type"], url=d["url"], token=d["token"])
             for d in data["challenges"]
         ]
 
     async def respond_challenge(
-        self: "ACMEClient", challenge: ACMEChallenge
+        self: "AcmeClient", challenge: AcmeChallenge
     ) -> None:
         """
         Respond to challenge.
@@ -503,7 +503,7 @@ class ACMEClient(object):
         await self._post(challenge.url, {})
 
     async def wait_for_authorization(
-        self: "ACMEClient", auth: ACMEAuthorization
+        self: "AcmeClient", auth: AcmeAuthorization
     ) -> None:
         """
         Wait untill authorization became valid.
@@ -526,7 +526,7 @@ class ACMEClient(object):
                 await self._random_delay(3.0)
             else:
                 msg = f"Status is {status}"
-                raise ACMEAuthorizationError(msg)
+                raise AcmeAuthorizationError(msg)
 
     @staticmethod
     async def _random_delay(limit: float) -> None:
@@ -569,17 +569,17 @@ class ACMEClient(object):
             Order status
 
         Raises:
-            ACMECertificateError: if status is invalid
+            AcmeCertificateError: if status is invalid
         """
         data = resp.json()
         status = cast(str, data["status"])
         if status == "invalid":
             msg = "Failed to finalize order"
-            raise ACMECertificateError(msg)
+            raise AcmeCertificateError(msg)
         return status
 
     async def finalize_and_wait(
-        self: "ACMEClient", order: ACMEOrder, *, csr: bytes
+        self: "AcmeClient", order: AcmeOrder, *, csr: bytes
     ) -> bytes:
         """
         Send finalization request and wait for the certificate.
@@ -592,7 +592,7 @@ class ACMEClient(object):
             Signed certificate in PEM format.
 
         Raises:
-            ACMECertificateError: When server refuses
+            AcmeCertificateError: When server refuses
                 to sign the certificate.
         """
         logger.warning("Finalizing order")
@@ -614,7 +614,7 @@ class ACMEClient(object):
                 resp = await self._post(data["certificate"], None)
                 return resp.text.encode()
 
-    async def sign(self: "ACMEClient", domain: str, csr: bytes) -> bytes:
+    async def sign(self: "AcmeClient", domain: str, csr: bytes) -> bytes:
         """
         Sign the CSR and get a certificate for domain.
 
@@ -628,9 +628,9 @@ class ACMEClient(object):
 
         Examples:
             ``` python
-            class SignClient(ACMEClient):
+            class SignClient(AcmeClient):
                 async def fulfill_http_01(
-                    self, domain: str, challenge: ACMEChallenge
+                    self, domain: str, challenge: AcmeChallenge
                 ) -> bool:
                     # do something useful
                     return True
@@ -647,10 +647,10 @@ class ACMEClient(object):
             The signed certificate in PEM format.
 
         Raises:
-            ACMETimeoutError: On timeouts.
-            ACMEFulfillmentFailed: If the client failed to
+            AcmeTimeoutError: On timeouts.
+            AcmeFulfillmentFailed: If the client failed to
                 fulfill any challenge.
-            ACMEError: and subclasses in case of other errors.
+            AcmeError: and subclasses in case of other errors.
         """
         logger.warning("Signing CSR for domain %s", domain)
         self._check_bound()
@@ -668,7 +668,7 @@ class ACMEClient(object):
                     fulfilled_challenge = ch
                     break
             else:
-                raise ACMEFulfillmentFailed
+                raise AcmeFulfillmentFailed
             # Wait for authorization became valid
             await self._wait_for(self.wait_for_authorization(auth), 60.0)
             # Clear challenge
@@ -678,7 +678,7 @@ class ACMEClient(object):
             self.finalize_and_wait(order, csr=csr), 60.0
         )
 
-    async def _head(self: "ACMEClient", url: str) -> httpx.Response:
+    async def _head(self: "AcmeClient", url: str) -> httpx.Response:
         """
         Perform HTTP HEAD request.
 
@@ -692,7 +692,7 @@ class ACMEClient(object):
             httpx.Response instance.
 
         Raises:
-            ACMEError: in case of error.
+            AcmeError: in case of error.
         """
         logger.warning("HEAD %s", url)
         async with self._get_client() as client:
@@ -702,13 +702,13 @@ class ACMEClient(object):
                     self._timeout,
                 )
             except httpx.HTTPError as e:
-                raise ACMEConnectError from e
+                raise AcmeConnectError from e
             self._check_response(r)
             self._nonce_from_response(r)
             return r
 
     async def _post(
-        self: "ACMEClient", url: str, data: Optional[Dict[str, Any]]
+        self: "AcmeClient", url: str, data: Optional[Dict[str, Any]]
     ) -> httpx.Response:
         """
         Perform HTTP POST request.
@@ -716,7 +716,7 @@ class ACMEClient(object):
         Performs HTTP POST request using underlied HTTP client.
         Updates nonces if any responded. Retries once
         if the nonce was rejected by server.
-        Raises an ACMEError in case of the error.
+        Raises an AcmeError in case of the error.
 
         Args:
             url: Request URL
@@ -727,17 +727,17 @@ class ACMEClient(object):
             httpx.Response instance.
 
         Raises:
-            ACMEError: in case of the error.
+            AcmeError: in case of the error.
         """
         try:
             return await self._post_once(url, data)
-        except ACMEBadNonceError:
+        except AcmeBadNonceError:
             # Retry once
             logger.warning("POST retry on invalid nonce")
             return await self._post_once(url, data)
 
     async def _post_once(
-        self: "ACMEClient", url: str, data: Optional[Dict[str, Any]]
+        self: "AcmeClient", url: str, data: Optional[Dict[str, Any]]
     ) -> httpx.Response:
         """
         Perform a single HTTP POST request.
@@ -753,10 +753,10 @@ class ACMEClient(object):
             httpx.Response instance.
 
         Raises:
-            ACMEConnectError: in case of transport errors.
-            ACMETimeoutError: on timeouts.
-            ACMEBadNonceError: in case of bad nonce.
-            ACMEError: in case of the error.
+            AcmeConnectError: in case of transport errors.
+            AcmeTimeoutError: on timeouts.
+            AcmeBadNonceError: in case of bad nonce.
+            AcmeError: in case of the error.
         """
         logger.warning("POST %s", url)
         nonce = await self._get_nonce(url)
@@ -774,12 +774,12 @@ class ACMEClient(object):
                     self._timeout,
                 )
             except httpx.HTTPError as e:
-                raise ACMEConnectError from e
+                raise AcmeConnectError from e
             self._check_response(resp)
             self._nonce_from_response(resp)
             return resp
 
-    async def _get_nonce(self: "ACMEClient", url: str) -> bytes:
+    async def _get_nonce(self: "AcmeClient", url: str) -> bytes:
         """
         Request new nonce.
 
@@ -801,7 +801,7 @@ class ACMEClient(object):
             self._check_response(resp)
         return self._nonces.pop()
 
-    def _nonce_from_response(self: "ACMEClient", resp: httpx.Response) -> None:
+    def _nonce_from_response(self: "AcmeClient", resp: httpx.Response) -> None:
         """
         Get nonce from response, if present.
 
@@ -811,7 +811,7 @@ class ACMEClient(object):
             resp: HTTP Response
 
         Raises:
-            ACMEBadNonceError: on malformed nonce.
+            AcmeBadNonceError: on malformed nonce.
         """
         nonce = resp.headers.get(self.NONCE_HEADER)
         if nonce is None:
@@ -821,14 +821,14 @@ class ACMEClient(object):
             b_nonce = decode_b64jose(nonce)
             if b_nonce in self._nonces:
                 msg = "Duplicated nonce"
-                raise ACMEError(msg)
+                raise AcmeError(msg)
             self._nonces.add(b_nonce)
         except DeserializationError as e:
             logger.error("Bad nonce: %s", e)
-            raise ACMEBadNonceError from e
+            raise AcmeBadNonceError from e
 
     def _to_jws(
-        self: "ACMEClient",
+        self: "AcmeClient",
         data: Optional[Dict[str, Any]],
         *,
         nonce: Optional[bytes],
@@ -863,9 +863,9 @@ class ACMEClient(object):
             resp: Response instance
 
         Raises:
-            ACMEUndecodableError: When failed to decode an error.
-            ACMEBadNonceError: When the server rejects nonce.
-            ACMERateLimitError: When the server rejects the request
+            AcmeUndecodableError: When failed to decode an error.
+            AcmeBadNonceError: When the server rejects nonce.
+            AcmeRateLimitError: When the server rejects the request
                 due to high request rate.
         """
         if resp.status_code < BAD_REQUEST:
@@ -873,18 +873,18 @@ class ACMEClient(object):
         try:
             jdata = resp.json()
         except ValueError as e:
-            raise ACMEUndecodableError from e
+            raise AcmeUndecodableError from e
         e_type = jdata.get("type", "")
         if e_type == "urn:ietf:params:acme:error:badNonce":
-            raise ACMEBadNonceError
+            raise AcmeBadNonceError
         if e_type == "urn:ietf:params:acme:error:rateLimited":
-            raise ACMERateLimitError
+            raise AcmeRateLimitError
         if e_type == "urn:ietf:params:acme:error:unauthorized":
-            raise ACMEUnauthorizedError
+            raise AcmeUnauthorizedError
         e_detail = jdata.get("detail", "")
         msg = f"[{resp.status_code}] {e_type} {e_detail}"
         logger.error("Response error: %s", msg)
-        raise ACMEError(msg)
+        raise AcmeError(msg)
 
     @staticmethod
     def get_key() -> JWKRSA:
@@ -893,7 +893,7 @@ class ACMEClient(object):
 
         Examples:
             ``` python
-            key = ACMEClient.get_key()
+            key = AcmeClient.get_key()
             ```
 
         Returns:
@@ -907,7 +907,7 @@ class ACMEClient(object):
         return JWKRSA(key=private_key)
 
     async def fulfill_challenge(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Try to fulfill challege.
@@ -917,7 +917,7 @@ class ACMEClient(object):
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
 
         Returns:
             True: if the challenge is fulfilled.
@@ -942,19 +942,19 @@ class ACMEClient(object):
         return r
 
     async def fulfill_tls_alpn_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Fulfill the `tls-alpn-01` type of challenge.
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_tls_alpn_01][gufo.acme.clients.base.ACMEClient.clear_tls_alpn_01]
+        [clear_tls_alpn_01][gufo.acme.clients.base.AcmeClient.clear_tls_alpn_01]
         to perform cleanup.
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
 
         Returns:
             True: if the challenge is fulfilled.
@@ -963,19 +963,19 @@ class ACMEClient(object):
         return False
 
     async def fulfill_http_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Fulfill the `http-01` type of challenge.
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_http_01][gufo.acme.clients.base.ACMEClient.clear_http_01]
+        [clear_http_01][gufo.acme.clients.base.AcmeClient.clear_http_01]
         to perform cleanup.
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
 
         Returns:
             True: if the challenge is fulfilled.
@@ -984,19 +984,19 @@ class ACMEClient(object):
         return False
 
     async def fulfill_dns_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Fulfill the `dns-01` type of challenge.
 
         Should be overriden in subclasses to perform all
         necessary jobs. Override
-        [clear_dns_01][gufo.acme.clients.base.ACMEClient.clear_dns_01]
+        [clear_dns_01][gufo.acme.clients.base.AcmeClient.clear_dns_01]
         to perform cleanup.
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
 
         Returns:
             True: if the challenge is fulfilled.
@@ -1005,14 +1005,14 @@ class ACMEClient(object):
         return False
 
     async def clear_challenge(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Clear up fulfillment after the challenge has been validated.
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
         """
         logger.warning(
             "Trying to clear challenge %s for %s", challenge.type, domain
@@ -1026,7 +1026,7 @@ class ACMEClient(object):
         return None
 
     async def clear_tls_alpn_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Clear up fulfillment after the `tls-alpn-01` has been validated.
@@ -1035,11 +1035,11 @@ class ACMEClient(object):
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
         """
 
     async def clear_http_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Clear up fulfillment after the `http-01` has been validated.
@@ -1048,11 +1048,11 @@ class ACMEClient(object):
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
         """
 
     async def clear_dns_01(
-        self: "ACMEClient", domain: str, challenge: ACMEChallenge
+        self: "AcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Clear up fulfillment after the `dns-01` has been validated.
@@ -1061,11 +1061,11 @@ class ACMEClient(object):
 
         Args:
             domain: Domain name.
-            challenge: ACMEChallenge instance.
+            challenge: AcmeChallenge instance.
         """
 
     def get_key_authorization(
-        self: "ACMEClient", challenge: ACMEChallenge
+        self: "AcmeClient", challenge: AcmeChallenge
     ) -> bytes:
         """
         Calculate value for key authorization.
@@ -1143,13 +1143,13 @@ class ACMEClient(object):
         # Convert CSR to PEM format
         return csr.public_bytes(encoding=Encoding.PEM)
 
-    def get_state(self: "ACMEClient") -> bytes:
+    def get_state(self: "AcmeClient") -> bytes:
         """
         Serialize the state of client to a stream of bytes.
 
         The state will contain all necessasy information
         to instantiate the new client by the
-        `ACMEClient.from_state(...)`
+        `AcmeClient.from_state(...)`
 
         Return:
             State of the client as a stream of bytes
@@ -1165,10 +1165,10 @@ class ACMEClient(object):
     @classmethod
     def from_state(cls: Type[CT], state: bytes, **kwargs: Any) -> CT:
         """
-        Restore ACMEClient from the state.
+        Restore AcmeClient from the state.
 
         Restore the state of client from result of
-        [ACMEClient.get_state][gufo.acme.clients.base.ACMEClient.get_state]
+        [AcmeClient.get_state][gufo.acme.clients.base.AcmeClient.get_state]
         call.
 
         Args:
@@ -1176,7 +1176,7 @@ class ACMEClient(object):
             kwargs: An additional arguments to be passed to constructor.
 
         Returns:
-            New ACMEClient instance.
+            New AcmeClient instance.
         """
         s = json.loads(state)
         return cls(

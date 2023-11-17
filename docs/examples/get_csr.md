@@ -29,7 +29,7 @@ Import `sys` module to parse the CLI argument.
 --8<-- "examples/get_csr.py"
 ```
 
-Then we import an `ACMEClient` itself.
+Then we import an `AcmeClient` itself.
 
 ```  py title="get_csr.py" linenums="1" hl_lines="6"
 --8<-- "examples/get_csr.py"
@@ -53,7 +53,7 @@ The `pk` variable contains our private key.
 ```  py title="get_csr.py" linenums="1" hl_lines="9"
 --8<-- "examples/get_csr.py"
 ```
-`ACMEClient.get_domain_csr()` function generates
+`AcmeClient.get_domain_csr()` function generates
 a CSR in PEM format. It aceepts requred parameters:
 
 * `domain` - domain name

@@ -1,9 +1,9 @@
 # ---------------------------------------------------------------------
-# Gufo ACME: WebACMEClient implementation
+# Gufo ACME: WebAcmeClient implementation
 # ---------------------------------------------------------------------
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
-"""A WebACMEClient implementation."""
+"""A WebAcmeClient implementation."""
 
 # Python modules
 import os
@@ -12,11 +12,11 @@ from typing import Any, Union
 
 # Gufo ACME modules
 from ..log import logger
-from ..types import ACMEChallenge
-from .base import ACMEClient
+from ..types import AcmeChallenge
+from .base import AcmeClient
 
 
-class WebACMEClient(ACMEClient):
+class WebAcmeClient(AcmeClient):
     """
     A webserver-backed ACME client.
 
@@ -30,7 +30,7 @@ class WebACMEClient(ACMEClient):
     """
 
     def __init__(
-        self: "WebACMEClient",
+        self: "WebAcmeClient",
         directory_url: str,
         *,
         path: Union[str, Path],
@@ -39,7 +39,7 @@ class WebACMEClient(ACMEClient):
         super().__init__(directory_url, **kwargs)
         self.path = Path(path)
 
-    def _get_path(self: "WebACMEClient", challenge: ACMEChallenge) -> Path:
+    def _get_path(self: "WebAcmeClient", challenge: AcmeChallenge) -> Path:
         """
         Get Path for challenge.
 
@@ -52,7 +52,7 @@ class WebACMEClient(ACMEClient):
         return self.path / Path(challenge.token)
 
     async def fulfill_http_01(
-        self: "WebACMEClient", domain: str, challenge: ACMEChallenge
+        self: "WebAcmeClient", domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Perform http-01 fullfilment.
@@ -61,13 +61,13 @@ class WebACMEClient(ACMEClient):
 
         Args:
             domain: Domain name
-            challenge: ACMEChallenge instance, containing token.
+            challenge: AcmeChallenge instance, containing token.
 
         Returns:
             True - on succeess
 
         Raises:
-            ACMEFulfillmentFailed: On error.
+            AcmeFulfillmentFailed: On error.
         """
         path = self._get_path(challenge)
         v = self.get_key_authorization(challenge)
@@ -77,17 +77,17 @@ class WebACMEClient(ACMEClient):
         return True
 
     async def clear_http_01(
-        self: "WebACMEClient", domain: str, challenge: ACMEChallenge
+        self: "WebAcmeClient", domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Remove provisioned token.
 
         Args:
             domain: Domain name
-            challenge: ACMEChallenge instance, containing token.
+            challenge: AcmeChallenge instance, containing token.
 
         Raises:
-            ACMEFulfillmentFailed: On error.
+            AcmeFulfillmentFailed: On error.
         """
         path = self._get_path(challenge)
         if os.path.exists(path):
