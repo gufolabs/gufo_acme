@@ -25,7 +25,8 @@ Gufo ACME contains various clients which can be applied to your tasks:
 
 * ACMEClient - base client to implement any fulfillment functionality
     by creating subclasses.
-* DAVACMEClient - http-01 fulfillment using WebDAV methods.    
+* DAVACMEClient - http-01 fulfillment using WebDAV methods.
+* PowerDnsAcmeClient - dns-01 PowerDNS fulfillment.
 * WebACMEClient - http-01 static file fulfillment.
 
 ## Supported Certificate Authorities
@@ -95,6 +96,7 @@ async with SignACMEClient.from_state(state) as client:
 * Fully typed.
 * Clean API.
 * Robust well-tested code.
+* Batteries included.
 * 99%+ test coverage.
 
 ## On Gufo Stack

@@ -29,6 +29,10 @@ class DAVACMEClient(ACMEClient):
     with basic authorization.
     Works either with WebDAV modules
     or with custom scripts.
+
+    Args:
+        username: DAV user name.
+        password: DAV password.
     """
 
     def __init__(

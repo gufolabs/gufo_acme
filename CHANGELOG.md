@@ -15,6 +15,8 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 ## Added
 
 * DAVACMEClient: http-01 fulfillment using WebDAV
+* PowerDnsAcmeClient: dns-01 fulfillment using PowerDNS.
+* WEBACMEClient: http-01 fulfillment using static files.
 
 ## Changed
 

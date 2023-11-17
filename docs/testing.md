@@ -78,6 +78,8 @@ to run tests in the CI environment. On local environments, the test is skipped b
 To enable the test in your local environment, additional
 infrastructure is needed.
 
+### DAVACMEClient
+
 1. Have control over a DNS zone (later `<mydomain>`).
 2. Set up an Nginx server.
 
@@ -158,9 +160,41 @@ commands in your development environment:
 
 ```
 export CI_ACME_TEST_DOMAIN=acme-ci.<domain>
-export CI_ACME_TEST_USER=<user>
-export CI_ACME_TEST_PASS=<password>
+export CI_DAV_TEST_DOMAIN=acme-ci.<domain>
+export CI_DAV_TEST_USER=<user>
+export CI_DAV_TEST_PASSWORD=<password>
 ```
+
+### PowerDnsAcmeClient
+
+We're considering:
+
+* We're perform testig on csr-proxy-test.<domain>
+* Your PowerDNS server's name is pdns.<domain>
+
+First, in zone `<domain>` create a glue record pointing to your PowerDNS server:
+
+```
+csr-proxy-test IN IS pdns.<domain>
+```
+
+Create `csr-proxy-test.<domain>` zone:
+
+```
+pdnsutil create-zone csr-proxy-test.gufolabs.com
+```
+
+Your environment is now ready. Before running the test suite, execute the following
+commands in your development environment:
+
+```
+export CI_POWERDNS_TEST_DOMAIN=csr-proxy-test.<domain>
+export CI_POWERDNS_TEST_API_URL=https://<power-dns-url>
+export CI_POWERDNS_TEST_API_KEY=<api key>
+
+```
+
+
 
 ## Python Test Code Coverage Check
 
