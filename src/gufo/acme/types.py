@@ -56,6 +56,20 @@ class AcmeChallenge(object):
 
 
 @dataclass
+class AcmeAuthorizationStatus(object):
+    """
+    Authorization status response.
+
+    Attributes:
+        status: Current status.
+        challenges: List of ACME challenge.
+    """
+
+    status: str
+    challenges: List[AcmeChallenge]
+
+
+@dataclass
 class AcmeDirectory(object):
     """
     ACME directory.

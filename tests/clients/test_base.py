@@ -583,3 +583,45 @@ def test_valid_order_status() -> None:
     resp = httpx.Response(200, json={"status": "valid"})
     s = AcmeClient._get_order_status(resp)
     assert s == "valid"
+
+
+@pytest.mark.parametrize(
+    ("input", "expected"),
+    [
+        (
+            "0twaM-fK_6yfQ_rxH4eZdqj1O6blhB2",
+            b"\xd2\xdc\x1a3\xe7\xca\xff\xac\x9fC\xfa\xf1\x1f\x87\x99v\xa8\xf5;\xa6\xe5\x84\x1d",
+        ),
+        (
+            "0twaM+fK_6yfQ/rxH4eZdqj1O6blhB2",
+            b"\xd2\xdc\x1a3\xe7\xca\xff\xac\x9fC\xfa\xf1\x1f\x87\x99v\xa8\xf5;\xa6\xe5\x84\x1d",
+        ),
+    ],
+)
+def test_decode_auto_base64(input: str, expected: bytes) -> None:
+    r = AcmeClient.decode_auto_base64(input)
+    assert r == expected
+
+
+TEST_EAB_KID = "53271e20d46fc7462c1b615ef239e853"
+TEST_EAB_HMAC = (
+    "WA2XYh7UvKnG0twaM-fK_6yfQ_rxH4eZdqj1O6blhB2RIwyh3KjFDIrPyUZk"
+    "ao5EyyPaUaYmk1Hl24LwgmqdEA"
+)
+
+
+def test_get_eab() -> None:
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
+    eab = client._get_eab(
+        ExternalAccountBinding(
+            kid=TEST_EAB_KID,
+            hmac_key=AcmeClient.decode_auto_base64(TEST_EAB_HMAC),
+        ),
+        "http://127.0.0.1/new_account",
+    )
+    print(eab)
+    assert eab == {
+        "protected": "eyJhbGciOiAiSFMyNTYiLCAia2lkIjogIjUzMjcxZTIwZDQ2ZmM3NDYyYzFiNjE1ZWYyMzllODUzIiwgInVybCI6ICJodHRwOi8vMTI3LjAuMC4xL25ld19hY2NvdW50In0",
+        "signature": "WdpEOa1e-Q9zyib7xzAFq3MrbUj82Gwt9RcLqqsr__Y",
+        "payload": "eyJuIjogImd2dmpvSlBkMUw0c3ExYlQwcTJDOTROM1dWN1c3bHJvQV9NekYtU0dNVllGYXNJMmx2cXcza0FrRlJ4RzM2NkpmSHIzQjFSLXhsQ3pFUEhOaXhiTDZiMGNjdlBGWlpzdW5nbng1bV91R0wyRk1paXN1MTg2ZE1uZnNrNllzc3ZlYm94aVFYRWhHTXhJOVQ2R2pFNmw2ZWMxUEdZNXVCNzB2UDJ3a0dQeGt2UkxEMnRHYWVfLTdrQ2dSenZGMnhPYUdaalQtanhIY1lwV3V0Tk4tcVF6RG9IbmhMdTBMSXdXbFhCYXpBczZ6YmtQdlBXOVBOWkFVZW5jV3h4UTVoSnRMa1ZTdmdTWXd6STFjeGxyQzhsQ2pnNnJJUjlMQThzNVBMemVlX25Fb3RsamxVMGxqWHozZXlEOVc0Zmw0ckM0NnY4LXVmazVFejl1dFFRMnNWaklNUSIsICJlIjogIkFRQUIiLCAia3R5IjogIlJTQSJ9",
+    }

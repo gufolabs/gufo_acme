@@ -61,6 +61,7 @@ from ..error import (
 from ..log import logger
 from ..types import (
     AcmeAuthorization,
+    AcmeAuthorizationStatus,
     AcmeChallenge,
     AcmeDirectory,
     AcmeOrder,
@@ -505,11 +506,11 @@ class AcmeClient(object):
             finalize=data["finalize"],
         )
 
-    async def get_challenges(
+    async def get_authorization_status(
         self: "AcmeClient", auth: AcmeAuthorization
-    ) -> List[AcmeChallenge]:
+    ) -> AcmeAuthorizationStatus:
         """
-        Get a challenge for an authoriations.
+        Get an authorization status.
 
         Performs RFC-8555 pp. 7.5 sequence.
 
@@ -525,7 +526,7 @@ class AcmeClient(object):
                     "sub.example.com"
                 ])
                 for auth in order.authorizations:
-                    challenges = await client.get_challenges(auth)
+                    auth_status = await client.get_authorization_status(auth)
             ```
 
         Args:
@@ -538,14 +539,17 @@ class AcmeClient(object):
         Raises:
             AcmeError: In case of the errors.
         """
-        logger.warning("Getting challenges for %s", auth.domain)
+        logger.warning("Getting authorization status for %s", auth.domain)
         self._check_bound()
         resp = await self._post(auth.url, None)
         data = resp.json()
-        return [
-            AcmeChallenge(type=d["type"], url=d["url"], token=d["token"])
-            for d in data["challenges"]
-        ]
+        return AcmeAuthorizationStatus(
+            status=data["status"],
+            challenges=[
+                AcmeChallenge(type=d["type"], url=d["url"], token=d["token"])
+                for d in data["challenges"]
+            ],
+        )
 
     async def respond_challenge(
         self: "AcmeClient", challenge: AcmeChallenge
@@ -559,7 +563,7 @@ class AcmeClient(object):
 
         Args:
             challenge: ACME challenge as returned by
-                `get_challenges` function.
+                `get_authorization_status` function.
         """
         logger.warning("Responding challenge %s", challenge.type)
         self._check_bound()
@@ -574,21 +578,18 @@ class AcmeClient(object):
         Args:
             auth: ACME Authorization
         """
+        logger.warning("Polling authorization for %s", auth.domain)
         while True:
-            logger.warning("Polling authorization for %s", auth.domain)
-            self._check_bound()
-            resp = await self._post(auth.url, None)
-            data = resp.json()
-            status = data.get("status") or "pending"
+            status = await self.get_authorization_status(auth)
             logger.warning(
-                "Authorization status for %s is %s", auth.domain, status
+                "Authorization status for %s is %s", auth.domain, status.status
             )
-            if status == "valid":
+            if status.status == "valid":
                 return
-            if status == "pending":
+            if status.status == "pending":
                 await self._random_delay(3.0)
             else:
-                msg = f"Status is {status}"
+                msg = f"Status is {status.status}"
                 raise AcmeAuthorizationError(msg)
 
     @staticmethod
@@ -722,20 +723,25 @@ class AcmeClient(object):
         # Process authorizations
         for auth in order.authorizations:
             logger.warning("Processing authorization for %s", auth.domain)
-            # Get challenges
-            challenges = await self.get_challenges(auth)
-            fulfilled_challenge = None
-            for ch in challenges:
-                if await self.fulfill_challenge(domain, ch):
-                    await self.respond_challenge(ch)
-                    fulfilled_challenge = ch
-                    break
-            else:
-                raise AcmeFulfillmentFailed
-            # Wait for authorization became valid
-            await self._wait_for(self.wait_for_authorization(auth), 60.0)
-            # Clear challenge
-            await self.clear_challenge(domain, fulfilled_challenge)
+            # Get authorization status.
+            auth_status = await self.get_authorization_status(auth)
+            if auth_status.status == "pending":
+                # Get challenges
+                fulfilled_challenge = None
+                for ch in auth_status.challenges:
+                    if await self.fulfill_challenge(domain, ch):
+                        await self.respond_challenge(ch)
+                        fulfilled_challenge = ch
+                        break
+                else:
+                    raise AcmeFulfillmentFailed
+                # Wait for authorization became valid
+                await self._wait_for(self.wait_for_authorization(auth), 60.0)
+                # Clear challenge
+                await self.clear_challenge(domain, fulfilled_challenge)
+            elif auth_status.status != "valid":
+                msg = f"Status is {auth_status.status}"
+                raise AcmeAuthorizationError(msg)
         # Finalize order and get certificate
         return await self._wait_for(
             self.finalize_and_wait(order, csr=csr), 60.0
