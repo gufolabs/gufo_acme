@@ -67,8 +67,25 @@ class AcmeDirectory(object):
         new_account: URL to create new account.
         new_nonce: URL to get a new nonce.
         new_order: URL to create a new order.
+        external_account_required: True, if new_account
+            requires external account binding.
     """
 
     new_account: str
     new_nonce: Optional[str]
     new_order: str
+    external_account_required: bool
+
+
+@dataclass
+class ExternalAccountBinding(object):
+    """
+    External account binding for .new_account() method.
+
+    Attributes:
+        kid: Key identifier.
+        hmac_key: Decoded HMAC key.
+    """
+
+    kid: str
+    hmac_key: bytes

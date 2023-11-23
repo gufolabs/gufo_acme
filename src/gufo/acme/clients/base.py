@@ -37,8 +37,8 @@ from cryptography.hazmat.primitives.serialization import (
 from cryptography.x509.oid import NameOID
 from josepy.errors import DeserializationError
 from josepy.json_util import decode_b64jose, encode_b64jose
-from josepy.jwa import RS256, JWASignature
-from josepy.jwk import JWK, JWKRSA
+from josepy.jwa import HS256, RS256, JWASignature
+from josepy.jwk import JWK, JWKRSA, JWKOct
 
 # Gufo ACME modules
 from .. import __version__
@@ -50,6 +50,7 @@ from ..error import (
     AcmeCertificateError,
     AcmeConnectError,
     AcmeError,
+    AcmeExternalAccountRequred,
     AcmeFulfillmentFailed,
     AcmeNotRegistredError,
     AcmeRateLimitError,
@@ -58,7 +59,13 @@ from ..error import (
     AcmeUndecodableError,
 )
 from ..log import logger
-from ..types import AcmeAuthorization, AcmeChallenge, AcmeDirectory, AcmeOrder
+from ..types import (
+    AcmeAuthorization,
+    AcmeChallenge,
+    AcmeDirectory,
+    AcmeOrder,
+    ExternalAccountBinding,
+)
 
 BAD_REQUEST = 400
 T = TypeVar("T")
@@ -237,10 +244,16 @@ class AcmeClient(object):
                 raise AcmeConnectError from e
             self._check_response(r)
             data = r.json()
+        external_account_required = False
+        if "meta" in data:
+            external_account_required = data["meta"].get(
+                "externalAccountRequired", False
+            )
         self._directory = AcmeDirectory(
             new_account=data["newAccount"],
             new_nonce=data.get("newNonce"),
             new_order=data["newOrder"],
+            external_account_required=external_account_required,
         )
         return self._directory
 
@@ -259,8 +272,47 @@ class AcmeClient(object):
             return [f"mailto:{email}"]
         return [f"mailto:{m}" for m in email]
 
+    @staticmethod
+    def decode_auto_base64(data: str) -> bytes:
+        """
+        Decode Base64/Base64 URL.
+
+        Auto-detect encoding.
+
+        Args:
+            data: Encoded text.
+
+        Returns:
+            Decoded bytes.
+        """
+        # Base64 URL -> Base64
+        data = data.replace("-", "+").replace("_", "/")
+        return decode_b64jose(data)
+
+    def _get_eab(
+        self: "AcmeClient", external_binding: ExternalAccountBinding, url: str
+    ) -> Dict[str, Any]:
+        """
+        Get externalAccountBinding field.
+
+        Args:
+            external_binding: External binding structure.
+            url: newAccount url.
+        """
+        payload = json.dumps(self._key.public_key().to_partial_json()).encode()
+        return AcmeJWS.sign(
+            payload,
+            key=JWKOct(key=external_binding.hmac_key),
+            alg=HS256,
+            url=url,
+            kid=external_binding.kid,
+        ).to_partial_json()
+
     async def new_account(
-        self: "AcmeClient", email: Union[str, Iterable[str]]
+        self: "AcmeClient",
+        email: Union[str, Iterable[str]],
+        *,
+        external_binding: Optional[ExternalAccountBinding] = None,
     ) -> str:
         """
         Create new account.
@@ -288,6 +340,7 @@ class AcmeClient(object):
 
         Args:
             email: String containing email or any iterable yielding emails.
+            external_binding: External account binding, if required.
 
         Returns:
             ACME account url which can be passed as `account_url` parameter
@@ -296,6 +349,7 @@ class AcmeClient(object):
         Raises:
             AcmeError: In case of the errors.
             AcmeAlreadyRegistered: If an client is already bound to account.
+            AcmeExternalAccountRequred: External account binding is required.
         """
         # Build contacts
         contacts = self._email_to_contacts(email)
@@ -304,13 +358,22 @@ class AcmeClient(object):
         self._check_unbound()
         # Refresh directory
         d = await self._get_directory()
+        # Check if external account binding is required
+        if d.external_account_required and not external_binding:
+            raise AcmeExternalAccountRequred()
+        # Prepare request
+        req: Dict[str, Any] = {
+            "termsOfServiceAgreed": True,
+            "contact": contacts,
+        }
+        if d.external_account_required and external_binding:
+            req["externalAccountBinding"] = self._get_eab(
+                external_binding=external_binding, url=d.new_account
+            )
         # Post request
         resp = await self._post(
             d.new_account,
-            {
-                "termsOfServiceAgreed": True,
-                "contact": contacts,
-            },
+            req,
         )
         self._account_url = resp.headers["Location"]
         return self._account_url
@@ -758,8 +821,8 @@ class AcmeClient(object):
             AcmeBadNonceError: in case of bad nonce.
             AcmeError: in case of the error.
         """
-        logger.warning("POST %s", url)
         nonce = await self._get_nonce(url)
+        logger.warning("POST %s", url)
         jws = self._to_jws(data, nonce=nonce, url=url)
         async with self._get_client() as client:
             try:
@@ -880,6 +943,7 @@ class AcmeClient(object):
         if e_type == "urn:ietf:params:acme:error:rateLimited":
             raise AcmeRateLimitError
         if e_type == "urn:ietf:params:acme:error:unauthorized":
+            logger.error("Unauthorized: %s", jdata.get("detail", resp.text))
             raise AcmeUnauthorizedError
         e_detail = jdata.get("detail", "")
         msg = f"[{resp.status_code}] {e_type} {e_detail}"

@@ -24,6 +24,7 @@ from gufo.acme.error import (
     AcmeCertificateError,
     AcmeConnectError,
     AcmeError,
+    AcmeExternalAccountRequred,
     AcmeFulfillmentFailed,
     AcmeNotRegistredError,
     AcmeRateLimitError,
@@ -31,18 +32,28 @@ from gufo.acme.error import (
     AcmeUnauthorizedError,
     AcmeUndecodableError,
 )
-from gufo.acme.types import AcmeChallenge
+from gufo.acme.types import AcmeChallenge, ExternalAccountBinding
 from httpx import ConnectError, Response
 from josepy.jwk import JWKRSA
 
-from .utils import DIRECTORY, EMAIL, KEY, get_csr_pem, not_set, not_set_reason
+from .utils import (
+    EMAIL,
+    GOOGLE_STAGE_DIRECTORY,
+    KEY,
+    LE_STAGE_DIRECTORY,
+    get_csr_pem,
+    not_set,
+    not_set_reason,
+)
 
 ENV_CI_ACME_TEST_DOMAIN = "CI_ACME_TEST_DOMAIN"
+ENV_CI_GOOGLE_EAB_KID = "CI_GOOGLE_EAB_KID"
+ENV_CI_GOOGLE_EAB_HMAC = "CI_GOOGLE_EAB_HMAC"
 
 
 def test_get_directory() -> None:
     async def inner():
-        async with AcmeClient(DIRECTORY, key=KEY) as client:
+        async with AcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             d1 = await client._get_directory()
             assert d1.new_account
             # Cached
@@ -52,10 +63,24 @@ def test_get_directory() -> None:
     asyncio.run(inner())
 
 
+@pytest.mark.parametrize(
+    ("directory", "expected"),
+    [(LE_STAGE_DIRECTORY, False), (GOOGLE_STAGE_DIRECTORY, True)],
+)
+def test_external_account_required(directory: str, expected: bool) -> None:
+    async def inner() -> bool:
+        async with AcmeClient(directory, key=KEY) as client:
+            d = await client._get_directory()
+            return d.external_account_required
+
+    r = asyncio.run(inner())
+    assert r is expected
+
+
 def test_get_nonce() -> None:
     async def inner():
-        async with AcmeClient(DIRECTORY, key=KEY) as client:
-            nonce = await client._get_nonce(DIRECTORY)
+        async with AcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
+            nonce = await client._get_nonce(LE_STAGE_DIRECTORY)
             assert nonce
             assert isinstance(nonce, bytes)
 
@@ -63,7 +88,7 @@ def test_get_nonce() -> None:
 
 
 def test_to_jws() -> None:
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     nonce = b"12345"
     msg = client._to_jws(
         {
@@ -86,23 +111,25 @@ def test_to_jws() -> None:
 
 
 def test_check_unbound():
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     client._check_unbound()
     with pytest.raises(AcmeNotRegistredError):
         client._check_bound()
 
 
 def test_check_bound():
-    client = AcmeClient(DIRECTORY, key=KEY, account_url="http://127.0.0.1/acc")
+    client = AcmeClient(
+        LE_STAGE_DIRECTORY, key=KEY, account_url="http://127.0.0.1/acc"
+    )
     client._check_bound()
     with pytest.raises(AcmeAlreadyRegistered):
         client._check_unbound()
 
 
-def test_new_and_deactivate_account() -> None:
+def test_new_and_deactivate_letsencrypt_account() -> None:
     async def inner():
         key = AcmeClient.get_key()
-        async with AcmeClient(DIRECTORY, key=key) as client:
+        async with AcmeClient(LE_STAGE_DIRECTORY, key=key) as client:
             client._check_unbound()
             uri = await client.new_account(EMAIL)
             assert uri is not None
@@ -111,6 +138,45 @@ def test_new_and_deactivate_account() -> None:
             client._check_bound()
             await client.deactivate_account()
             client._check_unbound()
+
+    asyncio.run(inner())
+
+
+@pytest.mark.skipif(
+    not_set([ENV_CI_GOOGLE_EAB_KID, ENV_CI_GOOGLE_EAB_HMAC]),
+    reason=not_set_reason([ENV_CI_GOOGLE_EAB_KID, ENV_CI_GOOGLE_EAB_HMAC]),
+)
+def test_new_and_deactivate_google_account() -> None:
+    async def inner():
+        key = AcmeClient.get_key()
+        async with AcmeClient(GOOGLE_STAGE_DIRECTORY, key=key) as client:
+            client._check_unbound()
+            uri = await client.new_account(
+                EMAIL,
+                external_binding=ExternalAccountBinding(
+                    kid=kid, hmac_key=hmac
+                ),
+            )
+            assert uri is not None
+            assert isinstance(uri, str)
+            assert uri.startswith("http")
+            client._check_bound()
+            await client.deactivate_account()
+            client._check_unbound()
+
+    kid = os.getenv(ENV_CI_GOOGLE_EAB_KID) or ""
+    hmac = AcmeClient.decode_auto_base64(
+        os.getenv(ENV_CI_GOOGLE_EAB_HMAC) or ""
+    )
+    asyncio.run(inner())
+
+
+def test_account_binding_required() -> None:
+    async def inner() -> None:
+        key = AcmeClient.get_key()
+        async with AcmeClient(GOOGLE_STAGE_DIRECTORY, key=key) as client:
+            with pytest.raises(AcmeExternalAccountRequred):
+                await client.new_account(EMAIL)
 
     asyncio.run(inner())
 
@@ -124,7 +190,7 @@ def test_get_public_key() -> None:
 def test_already_registered() -> None:
     async def inner():
         async with AcmeClient(
-            DIRECTORY, key=KEY, account_url="http://127.0.0.1/"
+            LE_STAGE_DIRECTORY, key=KEY, account_url="http://127.0.0.1/"
         ) as client:
             with pytest.raises(AcmeAlreadyRegistered):
                 await client.new_account(EMAIL)
@@ -198,7 +264,7 @@ class BuggyAcmeClient(AcmeClient):
 
 def test_get_directory_timeout():
     async def inner():
-        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             with pytest.raises(AcmeTimeoutError):
                 await client._get_directory()
 
@@ -207,7 +273,7 @@ def test_get_directory_timeout():
 
 def test_get_directory_error():
     async def inner():
-        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BuggyAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             with pytest.raises(AcmeConnectError):
                 await client._get_directory()
 
@@ -216,7 +282,7 @@ def test_get_directory_error():
 
 def test_head_timeout():
     async def inner():
-        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             with pytest.raises(AcmeTimeoutError):
                 await client._head("")
 
@@ -225,7 +291,7 @@ def test_head_timeout():
 
 def test_head_error():
     async def inner():
-        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BuggyAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             with pytest.raises(AcmeConnectError):
                 await client._head("")
 
@@ -234,7 +300,7 @@ def test_head_error():
 
 def test_post_timeout():
     async def inner():
-        async with BlackholeAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
@@ -247,7 +313,7 @@ def test_post_timeout():
 
 def test_post_error():
     async def inner():
-        async with BuggyAcmeClient(DIRECTORY, key=KEY) as client:
+        async with BuggyAcmeClient(LE_STAGE_DIRECTORY, key=KEY) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
@@ -260,7 +326,9 @@ def test_post_error():
 
 def test_post_retry():
     async def inner():
-        async with BlackholeAcmeClientBadNonce(DIRECTORY, key=KEY) as client:
+        async with BlackholeAcmeClientBadNonce(
+            LE_STAGE_DIRECTORY, key=KEY
+        ) as client:
             # Avoid HTTP call in get_nonce
             client._nonces.add(
                 b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
@@ -284,7 +352,7 @@ def test_post_retry():
 def test_email_to_contacts(
     email: Union[str, List[str]], expected: List[str]
 ) -> None:
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     r = client._email_to_contacts(email)
     assert r == expected
 
@@ -305,7 +373,7 @@ def test_email_to_contacts(
 def test_domain_to_identifiers(
     domain: Union[str, List[str]], expected: List[str]
 ) -> None:
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     r = client._domain_to_identifiers(domain)
     assert r == expected
 
@@ -341,7 +409,7 @@ def test_check_response_err(j, etype):
 
 
 def test_nonce_from_response():
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
@@ -351,7 +419,7 @@ def test_nonce_from_response():
 
 
 def test_nonce_from_response_none():
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200)
     client._nonce_from_response(resp)
@@ -359,7 +427,7 @@ def test_nonce_from_response_none():
 
 
 def test_nonce_from_response_decode_error():
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "x"})
     with pytest.raises(AcmeBadNonceError):
@@ -367,7 +435,7 @@ def test_nonce_from_response_decode_error():
 
 
 def test_nonce_from_response_duplicated():
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
     resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
     client._nonce_from_response(resp)
@@ -441,7 +509,7 @@ def test_sign_no_fulfilment():
         csr_pem = get_csr_pem(domain)
         #
         pk = AcmeClient.get_key()
-        async with AcmeClient(DIRECTORY, key=pk) as client:
+        async with AcmeClient(LE_STAGE_DIRECTORY, key=pk) as client:
             # Register account
             uri = await client.new_account(EMAIL)
             assert uri
@@ -460,7 +528,7 @@ def test_sign_no_fulfilment():
 )
 def test_default_fulfilment(ch_type: str) -> None:
     chall = AcmeChallenge(type=ch_type, url="", token="")
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     r = asyncio.run(client.fulfill_challenge("example.com", chall))
     assert r is False
 
@@ -470,7 +538,7 @@ def test_default_fulfilment(ch_type: str) -> None:
 )
 def test_default_clear(ch_type: str) -> None:
     chall = AcmeChallenge(type=ch_type, url="", token="")
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     asyncio.run(client.clear_challenge("example.com", chall))
 
 
@@ -484,7 +552,7 @@ def test_get_csr() -> None:
 
 
 def test_state1() -> None:
-    client = AcmeClient(DIRECTORY, key=KEY)
+    client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     state = client.get_state()
     client2 = AcmeClient.from_state(state)
     assert client is not client2
@@ -495,7 +563,7 @@ def test_state1() -> None:
 
 def test_state2() -> None:
     client = AcmeClient(
-        DIRECTORY, key=KEY, account_url="https://127.0.0.1/acc"
+        LE_STAGE_DIRECTORY, key=KEY, account_url="https://127.0.0.1/acc"
     )
     state = client.get_state()
     client2 = AcmeClient.from_state(state)

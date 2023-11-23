@@ -18,7 +18,13 @@ from gufo.acme.clients.base import AcmeClient
 from gufo.acme.clients.dav import DavAcmeClient
 from gufo.acme.error import AcmeFulfillmentFailed
 
-from .utils import DIRECTORY, EMAIL, get_csr_pem, not_set, not_set_reason
+from .utils import (
+    EMAIL,
+    LE_STAGE_DIRECTORY,
+    get_csr_pem,
+    not_set,
+    not_set_reason,
+)
 
 ENV_CI_DAV_TEST_DOMAIN = "CI_DAV_TEST_DOMAIN"
 ENV_CI_DAV_TEST_USER = "CI_DAV_TEST_USER"
@@ -37,7 +43,7 @@ def test_sign():
         #
         pk = DavAcmeClient.get_key()
         async with DavAcmeClient(
-            DIRECTORY,
+            LE_STAGE_DIRECTORY,
             username=os.getenv(ENV_CI_DAV_TEST_USER),
             password=os.getenv(ENV_CI_DAV_TEST_PASSWORD),
             key=pk,
@@ -59,7 +65,7 @@ def test_sign():
 
 def test_state():
     client = AcmeClient(
-        DIRECTORY,
+        LE_STAGE_DIRECTORY,
         key=DavAcmeClient.get_key(),
     )
     state = client.get_state()

@@ -17,7 +17,13 @@ from gufo.acme.clients.base import AcmeClient
 from gufo.acme.clients.powerdns import PowerDnsAcmeClient
 from gufo.acme.error import AcmeFulfillmentFailed
 
-from .utils import DIRECTORY, EMAIL, get_csr_pem, not_set, not_set_reason
+from .utils import (
+    EMAIL,
+    LE_STAGE_DIRECTORY,
+    get_csr_pem,
+    not_set,
+    not_set_reason,
+)
 
 ENV_CI_POWERDNS_TEST_DOMAIN = "CI_POWERDNS_TEST_DOMAIN"
 ENV_CI_POWERDNS_TEST_API_URL = "CI_POWERDNS_TEST_API_URL"
@@ -36,7 +42,7 @@ def test_sign():
         #
         pk = PowerDnsAcmeClient.get_key()
         async with PowerDnsAcmeClient(
-            DIRECTORY,
+            LE_STAGE_DIRECTORY,
             api_url=os.getenv(ENV_CI_POWERDNS_TEST_API_URL),
             api_key=os.getenv(ENV_CI_POWERDNS_TEST_API_KEY),
             key=pk,
@@ -58,7 +64,7 @@ def test_sign():
 
 def test_state():
     client = AcmeClient(
-        DIRECTORY,
+        LE_STAGE_DIRECTORY,
         key=PowerDnsAcmeClient.get_key(),
     )
     state = client.get_state()

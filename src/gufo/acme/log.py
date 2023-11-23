@@ -7,7 +7,7 @@
 """
 logging utilities.
 
-Attribute:
+Attributes:
     logger: Gufo ACME logger.
 """
 # Python modules

@@ -53,3 +53,7 @@ class AcmeUnauthorizedError(AcmeError):
 
 class AcmeCertificateError(AcmeError):
     """Failed to finalize."""
+
+
+class AcmeExternalAccountRequred(AcmeError):
+    """External account binding is required."""

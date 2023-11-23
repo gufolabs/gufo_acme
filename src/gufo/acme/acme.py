@@ -58,7 +58,7 @@ class AcmeJWS(JWS):
         *,
         key: JWK,
         alg: JWASignature,
-        nonce: Optional[bytes],
+        nonce: Optional[bytes] = None,
         url: Optional[str] = None,
         kid: Optional[str] = None,
         **kwargs: Dict[str, Any],

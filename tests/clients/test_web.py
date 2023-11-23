@@ -8,7 +8,7 @@ from pathlib import Path
 from gufo.acme.clients.web import WebAcmeClient
 from gufo.acme.types import AcmeChallenge
 
-from .utils import DIRECTORY, KEY
+from .utils import KEY, LE_STAGE_DIRECTORY
 
 DOMAIN = "example.com"
 AUTH_KEY = (
@@ -26,7 +26,7 @@ def test_web() -> None:
         )
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)
-            client = WebAcmeClient(DIRECTORY, key=KEY, path=path)
+            client = WebAcmeClient(LE_STAGE_DIRECTORY, key=KEY, path=path)
             r = await client.fulfill_http_01(DOMAIN, chall)
             assert r is True
             with open(path / chall.token, "rb") as fp:

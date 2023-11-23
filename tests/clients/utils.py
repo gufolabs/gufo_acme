@@ -13,7 +13,9 @@ from gufo.acme.clients.base import AcmeClient
 from josepy.jwk import JWKRSA
 
 EMAIL = "acme-000000000@gufolabs.com"
-DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+LE_STAGE_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"
+GOOGLE_STAGE_DIRECTORY = "https://dv.acme-v02.test-api.pki.goog/directory"
+
 KEY = JWKRSA.from_json(
     {
         "n": "gvvjoJPd1L4sq1bT0q2C94N3WV7W7lroA_MzF-SGMVYFasI2lvqw3kAkFRxG366JfHr3B1R-xlCzEPHNixbL6b0ccvPFZZsungnx5m_uGL2FMiisu186dMnfsk6YssveboxiQXEhGMxI9T6GjE6l6ec1PGY5uB70vP2wkGPxkvRLD2tGae_-7kCgRzvF2xOaGZjT-jxHcYpWutNN-qQzDoHnhLu0LIwWlXBazAs6zbkPvPW9PNZAUencWxxQ5hJtLkVSvgSYwzI1cxlrC8lCjg6rIR9LA8s5PLzee_nEotljlU0ljXz3eyD9W4fl4rC46v8-ufk5Ez9utQQ2sVjIMQ",

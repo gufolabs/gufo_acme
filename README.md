@@ -31,7 +31,9 @@ Gufo ACME contains various clients which can be applied to your tasks:
 
 ## Supported Certificate Authorities
 
-* [Letsencrypt](https://letsencrypt.org)
+* [Letsencrypt](https://letsencrypt.org/)
+* [ZeroSSL](https://zerossl.com/)
+* Google Public CA
 * Any [RFC-8555](https://tools.ietf.org/html/rfc8555) compatible CA.
 
 ## Examples
