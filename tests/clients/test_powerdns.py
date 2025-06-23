@@ -39,7 +39,6 @@ SCENARIO_ENV = [
 def test_sign():
     async def inner():
         csr_pem = get_csr_pem(domain)
-        #
         pk = PowerDnsAcmeClient.get_key()
         async with PowerDnsAcmeClient(
             LE_STAGE_DIRECTORY,

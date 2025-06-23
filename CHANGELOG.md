@@ -10,37 +10,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 To see unreleased changes, please see the [CHANGELOG on the master branch](https://github.com/gufolabs/gufo_acme/blob/master/CHANGELOG.md) guide.
 
+## [Unreleased]
+
+### Infrastructure
+
+* Replace black with ruff format.
+* PYPI trusted publishing.
+
 ## 0.4.0 - 2023-11-23
 
-## Added
+### Added
 
 * `AcmeAuthorizationStatus` structure
 
-## Changed
+### Changed
 
 * `AcmeClient.get_challenges` replaced with `AcmeClient.get_authorization_status`.
 * Respond to challenges only if authorization status is `pending`.
 
 ## 0.3.0 - 2023-11-23
 
-## Added
+### Added
 
 * External Account Binding support.
 
 ## 0.2.0 - 2023-11-17
 
-## Added
+### Added
 
 * DavAcmeClient: http-01 fulfillment using WebDAV
 * PowerDnsAcmeClient: dns-01 fulfillment using PowerDNS.
 * WebAcmeClient: http-01 fulfillment using static files.
 
-## Changed
+### Changed
 
 * ACMEClient has been moved into `gufo.acme.clients.base`.
 * ACMEClient, types, and exceptions have been renamed to snake-case.
 
-## Fixed
+### Fixed
 
 * Fixed typo in exception class name.
 

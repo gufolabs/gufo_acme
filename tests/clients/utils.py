@@ -8,9 +8,10 @@
 import os
 from typing import Iterable
 
+from josepy.jwk import JWKRSA
+
 # Gufo ACME modules
 from gufo.acme.clients.base import AcmeClient
-from josepy.jwk import JWKRSA
 
 EMAIL = "acme-000000000@gufolabs.com"
 LE_STAGE_DIRECTORY = "https://acme-staging-v02.api.letsencrypt.org/directory"

@@ -4,6 +4,7 @@
 # Copyright (C) 2023, Gufo Labs
 # ---------------------------------------------------------------------
 """An AcmeClient implementation."""
+
 # Python modules
 import asyncio
 import json
@@ -421,7 +422,7 @@ class AcmeClient(object):
 
     @staticmethod
     def _domain_to_identifiers(
-        domain: Union[str, Iterable[str]]
+        domain: Union[str, Iterable[str]],
     ) -> List[Dict[str, str]]:
         """
         Convert domain name to a list of order identifiers.
@@ -497,7 +498,6 @@ class AcmeClient(object):
         # Post request
         resp = await self._post(d.new_order, {"identifiers": identifiers})
         data = resp.json()
-        #
         return AcmeOrder(
             authorizations=[
                 AcmeAuthorization(domain=i["value"], url=a)

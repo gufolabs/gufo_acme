@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # Gufo Labs: Project structure tests
 # ---------------------------------------------------------------------
-# Copyright (C) 2022-23, Gufo Labs
+# Copyright (C) 2022-24, Gufo Labs
 # See LICENSE.md for details
 # ---------------------------------------------------------------------
 
@@ -9,6 +9,7 @@
 import inspect
 import os
 import sys
+from pathlib import Path
 from typing import Tuple, Union
 
 # Third-party modules
@@ -30,21 +31,36 @@ def _get_project_info() -> Tuple[str, str]:
     """
 
     def explore_dir(*args: str) -> str:
+        def is_not_rust(path: Path) -> bool:
+            if not path.is_dir():
+                return True
+            return not any(path.rglob("*.rs"))
+
+        root = Path(*args)
         d = [
             f
             for f in os.listdir(os.path.join(*args))
             if not f.startswith(".")
             and not f.startswith("_")
             and not f.endswith(".egg-info")
+            and not f.endswith(".rs")
         ]
+        if len(d) > 1:
+            d = [x for x in d if is_not_rust(root / x)]
         assert len(d) == 1
         return d[0]
+
+    def has_init(*args: str) -> bool:
+        return Path(*(*args, "__init__.py")).exists()
 
     ns = explore_dir(ROOT, "src")
     if ns == "gufo":
         # gufo.* namespace
         pkg = explore_dir(ROOT, "src", ns)
-        return os.path.join("src", ns, pkg), f"{ns}.{pkg}"
+        if has_init("src", ns, pkg):
+            return os.path.join("src", ns, pkg), f"{ns}.{pkg}"
+        pkg2 = explore_dir(ROOT, "src", ns, pkg)
+        return os.path.join("src", ns, pkg, pkg2), f"{ns}.{pkg}.{pkg2}"
     return os.path.join("src", ns), ns
 
 
@@ -70,14 +86,14 @@ REQUIRED_FILES = [
     "README.md",
     "SECURITY.md",
     "docs/assets/logo.png",
-    "docs/codebase.md",
-    "docs/codequality.md",
-    "docs/devcommon.md",
-    "docs/environment.md",
+    "docs/dev/codebase.md",
+    "docs/dev/codequality.md",
+    "docs/dev/common.md",
+    "docs/dev/environment.md",
+    "docs/dev/testing.md",
     "docs/faq.md",
     "docs/index.md",
     ("docs/installation.md", "docs/installation/index.md"),
-    "docs/testing.md",
     "mkdocs.yml",
     "pyproject.toml",
     f"{PROJECT_SRC}/__init__.py",

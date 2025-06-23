@@ -40,7 +40,6 @@ SCENARIO_ENV = [
 def test_sign():
     async def inner():
         csr_pem = get_csr_pem(domain)
-        #
         pk = DavAcmeClient.get_key()
         async with DavAcmeClient(
             LE_STAGE_DIRECTORY,

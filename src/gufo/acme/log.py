@@ -10,6 +10,7 @@ logging utilities.
 Attributes:
     logger: Gufo ACME logger.
 """
+
 # Python modules
 from logging import getLogger
 

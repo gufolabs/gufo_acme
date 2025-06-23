@@ -15,6 +15,8 @@ import httpx
 
 # Third-party modules
 import pytest
+from httpx import ConnectError, Response
+from josepy.jwk import JWKRSA
 
 # Gufo ACME modules
 from gufo.acme.clients.base import AcmeClient
@@ -33,8 +35,6 @@ from gufo.acme.error import (
     AcmeUndecodableError,
 )
 from gufo.acme.types import AcmeChallenge, ExternalAccountBinding
-from httpx import ConnectError, Response
-from josepy.jwk import JWKRSA
 
 from .utils import (
     EMAIL,
@@ -507,7 +507,6 @@ def test_pem_to_ber():
 def test_sign_no_fulfilment():
     async def inner():
         csr_pem = get_csr_pem(domain)
-        #
         pk = AcmeClient.get_key()
         async with AcmeClient(LE_STAGE_DIRECTORY, key=pk) as client:
             # Register account
