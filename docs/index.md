@@ -88,12 +88,13 @@ async with SignAcmeClient.from_state(state) as client:
     cert = await client.sign(domain, csr)
 ```
 
-## Virtues
+## Features
 
 * Pure-Python implementation.
 * Asynchronous.
 * Fully typed.
 * Clean API.
+* Built with security in mind.
 * Robust well-tested code.
 * 99+% test coverage.
 

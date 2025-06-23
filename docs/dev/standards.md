@@ -1,6 +1,6 @@
 # Supported Standards
 
-Gufo Err implements and is guided by the following standards:
+Gufo ACME implements and is guided by the following standards:
 
 ## RFC
 
