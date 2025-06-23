@@ -2,5 +2,5 @@
 
 ## Bump Version
 
-* [ ] Change `__version__` in `src/gufo/err/__init__.py`
+* [ ] Change `__version__` in `src/gufo/acme/__init__.py`
 * [ ] Add section in `CHANGELOG.md`

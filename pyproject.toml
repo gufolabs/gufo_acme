@@ -129,6 +129,7 @@ dependencies = [
   "httpx[http2]>=0.25",
   "josepy>=1.14",
 ]
+description = "Python Automatic Certificate Management Environment (ACME) client"
 dynamic = ["version"]
 keywords = ["ACME", "Automatic Certificate Management Environment", "RFC8555"]
 license = {text = "BSD 3-Clause License"}
