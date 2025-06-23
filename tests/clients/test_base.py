@@ -550,6 +550,20 @@ def test_get_csr() -> None:
     assert b"END CERTIFICATE REQUEST" in csr
 
 
+def test_get_self_signed_certificate() -> None:
+    private_key = AcmeClient.get_domain_private_key()
+    assert b"BEGIN RSA PRIVATE KEY" in private_key
+    assert b"END RSA PRIVATE KEY" in private_key
+    csr = AcmeClient.get_domain_csr("example.com", private_key)
+    assert b"BEGIN CERTIFICATE REQUEST" in csr
+    assert b"END CERTIFICATE REQUEST" in csr
+    cert = AcmeClient.get_self_signed_certificate(
+        csr, private_key, validity_days=10
+    )
+    assert b"-BEGIN CERTIFICATE-" in cert
+    assert b"-END CERTIFICATE-" in cert
+
+
 def test_state1() -> None:
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     state = client.get_state()

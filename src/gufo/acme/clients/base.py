@@ -1,12 +1,13 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: AcmeClient implementation
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 """An AcmeClient implementation."""
 
 # Python modules
 import asyncio
+import datetime
 import json
 import random
 from types import TracebackType
@@ -1212,6 +1213,50 @@ class AcmeClient(object):
         )
         # Convert CSR to PEM format
         return csr.public_bytes(encoding=Encoding.PEM)
+
+    @staticmethod
+    def get_self_signed_certificate(
+        csr: bytes, private_key: bytes, /, validity_days: int = 365
+    ) -> bytes:
+        """
+        Self-sign CSR and return certificate in PEM format.
+
+        Args:
+            csr: CSR in PEM format.
+            private_key: Private key in PEM format.
+            validity_days: Number of days the certificate is valid.
+
+        Returns:
+            Self-signed certificate in PEM format.
+        """
+        # Load CSR
+        load_csr = x509.load_pem_x509_csr(csr)
+        # Load PK
+        pk = cast(
+            rsa.RSAPrivateKey,
+            load_pem_private_key(private_key, password=None, backend=None),
+        )
+        # Build certificate
+        subject = load_csr.subject
+        issuer = subject  # Self-signed
+        now = datetime.datetime.now(datetime.timezone.utc)
+        cert_builder = (
+            x509.CertificateBuilder()
+            .subject_name(subject)
+            .issuer_name(issuer)
+            .public_key(load_csr.public_key())
+            .serial_number(x509.random_serial_number())
+            .not_valid_before(now)
+            .not_valid_after(now + datetime.timedelta(days=validity_days))
+        )
+        # Copy CSR extensions to certificate
+        for ext in load_csr.extensions:
+            cert_builder = cert_builder.add_extension(
+                ext.value, critical=ext.critical
+            )
+        # Sign certificate
+        certificate = cert_builder.sign(private_key=pk, algorithm=SHA256())
+        return certificate.public_bytes(encoding=Encoding.PEM)
 
     def get_state(self: "AcmeClient") -> bytes:
         """

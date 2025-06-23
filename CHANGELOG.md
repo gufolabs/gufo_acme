@@ -12,6 +12,10 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## [Unreleased]
 
+### Added
+
+* AcmeClient.get_self_signed_certificate funciton.
+
 ### Infrastructure
 
 * Replace black with ruff format.
