@@ -1,3 +1,0 @@
-cryptography>=41
-httpx[http2]>=0.25
-josepy>=1.14
