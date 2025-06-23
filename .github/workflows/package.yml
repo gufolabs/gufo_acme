@@ -12,7 +12,6 @@ jobs:
     environment: pypi
     permissions:
       id-token: write
-    needs: test
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
