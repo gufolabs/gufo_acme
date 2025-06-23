@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # Gufo ACME
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 """
 An Python asyncio ACME client.
@@ -18,4 +18,4 @@ The package consists of the following modules:
 * [types][gufo.acme.types] - Package public types.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
