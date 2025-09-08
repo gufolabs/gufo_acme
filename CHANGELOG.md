@@ -12,6 +12,11 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## 0.5.1 - 2025-09-08
 
+### Security
+
+* devcontainer: Install security patches.
+* devcontainer: Use python:3.13-slim-trixie as base.
+
 ### Infrastructure
 
 * devcontainer: Bump IPython to 9.4.0.
