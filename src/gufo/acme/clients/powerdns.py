@@ -7,6 +7,7 @@
 
 # Python modules
 import hashlib
+import json
 from typing import Any
 
 # Third-party modules
@@ -91,8 +92,8 @@ class PowerDnsAcmeClient(AcmeClient):
             )
             # Set up the headers, including the API key for authentication
             headers = {
-                "X-API-Key": self.api_key,
-                "Content-Type": "application/json",
+                "X-API-Key": self.api_key.encode(),
+                "Content-Type": "application/json".encode(),
             }
             # Prepare the payload for the update
             update_payload = {
@@ -112,7 +113,7 @@ class PowerDnsAcmeClient(AcmeClient):
                 ]
             }
             resp = await client.patch(
-                endpoint, json=update_payload, headers=headers
+                endpoint, json.dumps(update_payload).encode(), headers=headers
             )
             self._check_api_response(resp)
             return True

@@ -88,12 +88,11 @@ class DavAcmeClient(AcmeClient):
         Raises:
             AcmeFulfillmentFailed: On error.
         """
-        async with self._get_client() as client:
+        async with self._get_client(auth=self.get_auth()) as client:
             v = self.get_key_authorization(challenge)
             resp = await client.put(
                 f"http://{domain}/.well-known/acme-challenge/{challenge.token}",
-                content=v,
-                auth=self.get_auth(),
+                v,
             )
             self._check_dav_response(resp)
         return True
@@ -111,9 +110,8 @@ class DavAcmeClient(AcmeClient):
         Raises:
             AcmeFulfillmentFailed: On error.
         """
-        async with self._get_client() as client:
+        async with self._get_client(auth=self.get_auth()) as client:
             resp = await client.delete(
                 f"http://{domain}/.well-known/acme-challenge/{challenge.token}",
-                auth=self.get_auth(),
             )
             self._check_dav_response(resp)

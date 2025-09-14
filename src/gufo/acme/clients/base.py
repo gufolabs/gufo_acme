@@ -41,7 +41,7 @@ from josepy.json_util import decode_b64jose, encode_b64jose
 from josepy.jwa import HS256, RS256, JWASignature
 from josepy.jwk import JWK, JWKRSA, JWKOct
 
-from gufo.http import HttpError, Response
+from gufo.http import AuthBase, HttpError, Response
 from gufo.http.async_client import HttpClient
 
 # Gufo ACME modules
@@ -202,7 +202,9 @@ class AcmeClient(object):
         if self.is_bound():
             raise AcmeAlreadyRegistered
 
-    def _get_client(self: "AcmeClient") -> HttpClient:
+    def _get_client(
+        self: "AcmeClient", auth: Optional[AuthBase] = None
+    ) -> HttpClient:
         """
         Get a HTTP client instance.
 
@@ -212,7 +214,9 @@ class AcmeClient(object):
         Returns:
             Async HTTP client instance.
         """
-        return HttpClient(headers={"User-Agent": self._user_agent.encode()})
+        return HttpClient(
+            headers={"User-Agent": self._user_agent.encode()}, auth=auth
+        )
 
     @staticmethod
     async def _wait_for(fut: Coroutine[Any, Any, T], timeout: float) -> T:
@@ -499,7 +503,7 @@ class AcmeClient(object):
         d = await self._get_directory()
         # Post request
         resp = await self._post(d.new_order, {"identifiers": identifiers})
-        data = resp.json()
+        data = json.loads(resp.content)
         return AcmeOrder(
             authorizations=[
                 AcmeAuthorization(domain=i["value"], url=a)
@@ -544,7 +548,7 @@ class AcmeClient(object):
         logger.warning("Getting authorization status for %s", auth.domain)
         self._check_bound()
         resp = await self._post(auth.url, None)
-        data = resp.json()
+        data = json.loads(resp.content)
         return AcmeAuthorizationStatus(
             status=data["status"],
             challenges=[
@@ -667,7 +671,7 @@ class AcmeClient(object):
             order.finalize, {"csr": encode_b64jose(self._pem_to_der(csr))}
         )
         self._get_order_status(resp)
-        order_uri = resp.headers["Location"]
+        order_uri = resp.headers["Location"].decode()
         # Poll for certificate
         await self._random_delay(1.0)
         while True:
@@ -676,9 +680,9 @@ class AcmeClient(object):
             status = self._get_order_status(resp)
             if status == "valid":
                 logger.warning("Order is ready. Downloading certificate")
-                data = resp.json()
+                data = json.loads(resp.content)
                 resp = await self._post(data["certificate"], None)
-                return resp.text.encode()
+                return resp.content
 
     async def sign(self: "AcmeClient", domain: str, csr: bytes) -> bytes:
         """
@@ -884,7 +888,7 @@ class AcmeClient(object):
         Raises:
             AcmeBadNonceError: on malformed nonce.
         """
-        nonce = resp.headers.get(self.NONCE_HEADER)
+        nonce = resp.headers.get(self.NONCE_HEADER, None)
         if nonce is None:
             return
         s_nonce = nonce.decode()
