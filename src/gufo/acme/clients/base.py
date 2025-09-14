@@ -26,7 +26,6 @@ from typing import (
 )
 
 # Third-party modules
-import httpx
 from cryptography import x509
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.hashes import SHA256
@@ -41,6 +40,9 @@ from josepy.errors import DeserializationError
 from josepy.json_util import decode_b64jose, encode_b64jose
 from josepy.jwa import HS256, RS256, JWASignature
 from josepy.jwk import JWK, JWKRSA, JWKOct
+
+from gufo.http import HttpError, Response
+from gufo.http.async_client import HttpClient
 
 # Gufo ACME modules
 from .. import __version__
@@ -73,6 +75,7 @@ from ..types import (
 BAD_REQUEST = 400
 T = TypeVar("T")
 CT = TypeVar("CT", bound="AcmeClient")
+HttpErrors = (HttpError, ConnectionError, TimeoutError)
 
 
 class AcmeClient(object):
@@ -199,19 +202,17 @@ class AcmeClient(object):
         if self.is_bound():
             raise AcmeAlreadyRegistered
 
-    def _get_client(self: "AcmeClient") -> httpx.AsyncClient:
+    def _get_client(self: "AcmeClient") -> HttpClient:
         """
         Get a HTTP client instance.
 
         May be overrided in subclasses to configure
-        or replace httpx.AsyncClient.
+        or replace HttpClient.
 
         Returns:
             Async HTTP client instance.
         """
-        return httpx.AsyncClient(
-            http2=True, headers={"User-Agent": self._user_agent}
-        )
+        return HttpClient(headers={"User-Agent": self._user_agent.encode()})
 
     @staticmethod
     async def _wait_for(fut: Coroutine[Any, Any, T], timeout: float) -> T:
@@ -243,10 +244,10 @@ class AcmeClient(object):
                 r = await self._wait_for(
                     client.get(self._directory_url), self._timeout
                 )
-            except httpx.HTTPError as e:
+            except HttpErrors as e:
                 raise AcmeConnectError from e
             self._check_response(r)
-            data = r.json()
+            data = json.loads(r.content)
         external_account_required = False
         if "meta" in data:
             external_account_required = data["meta"].get(
@@ -378,7 +379,7 @@ class AcmeClient(object):
             d.new_account,
             req,
         )
-        self._account_url = resp.headers["Location"]
+        self._account_url = resp.headers["Location"].decode()
         return self._account_url
 
     async def deactivate_account(self: "AcmeClient") -> None:
@@ -623,7 +624,7 @@ class AcmeClient(object):
         return csr.public_bytes(encoding=Encoding.DER)
 
     @staticmethod
-    def _get_order_status(resp: httpx.Response) -> str:
+    def _get_order_status(resp: Response) -> str:
         """
         Check order response.
 
@@ -636,7 +637,7 @@ class AcmeClient(object):
         Raises:
             AcmeCertificateError: if status is invalid
         """
-        data = resp.json()
+        data = json.loads(resp.content)
         status = cast(str, data["status"])
         if status == "invalid":
             msg = "Failed to finalize order"
@@ -748,7 +749,7 @@ class AcmeClient(object):
             self.finalize_and_wait(order, csr=csr), 60.0
         )
 
-    async def _head(self: "AcmeClient", url: str) -> httpx.Response:
+    async def _head(self: "AcmeClient", url: str) -> Response:
         """
         Perform HTTP HEAD request.
 
@@ -759,7 +760,7 @@ class AcmeClient(object):
             url: Request URL
 
         Returns:
-            httpx.Response instance.
+            Response instance.
 
         Raises:
             AcmeError: in case of error.
@@ -771,7 +772,7 @@ class AcmeClient(object):
                     client.head(url),
                     self._timeout,
                 )
-            except httpx.HTTPError as e:
+            except HttpErrors as e:
                 raise AcmeConnectError from e
             self._check_response(r)
             self._nonce_from_response(r)
@@ -779,7 +780,7 @@ class AcmeClient(object):
 
     async def _post(
         self: "AcmeClient", url: str, data: Optional[Dict[str, Any]]
-    ) -> httpx.Response:
+    ) -> Response:
         """
         Perform HTTP POST request.
 
@@ -794,7 +795,7 @@ class AcmeClient(object):
                 otherwise sends an empty payload (POST-as-GET).
 
         Returns:
-            httpx.Response instance.
+            Response instance.
 
         Raises:
             AcmeError: in case of the error.
@@ -808,7 +809,7 @@ class AcmeClient(object):
 
     async def _post_once(
         self: "AcmeClient", url: str, data: Optional[Dict[str, Any]]
-    ) -> httpx.Response:
+    ) -> Response:
         """
         Perform a single HTTP POST request.
 
@@ -820,7 +821,7 @@ class AcmeClient(object):
                 otherwise sends an empty payload (POST-as-GET).
 
         Returns:
-            httpx.Response instance.
+            Response instance.
 
         Raises:
             AcmeConnectError: in case of transport errors.
@@ -830,20 +831,20 @@ class AcmeClient(object):
         """
         nonce = await self._get_nonce(url)
         logger.warning("POST %s", url)
-        jws = self._to_jws(data, nonce=nonce, url=url)
+        jws = self._to_jws(data, nonce=nonce, url=url).encode()
         async with self._get_client() as client:
             try:
                 resp = await self._wait_for(
                     client.post(
                         url,
-                        content=jws,
+                        jws,
                         headers={
-                            "Content-Type": self.JOSE_CONTENT_TYPE,
+                            "Content-Type": self.JOSE_CONTENT_TYPE.encode(),
                         },
                     ),
                     self._timeout,
                 )
-            except httpx.HTTPError as e:
+            except HttpErrors as e:
                 raise AcmeConnectError from e
             self._check_response(resp)
             self._nonce_from_response(resp)
@@ -871,7 +872,7 @@ class AcmeClient(object):
             self._check_response(resp)
         return self._nonces.pop()
 
-    def _nonce_from_response(self: "AcmeClient", resp: httpx.Response) -> None:
+    def _nonce_from_response(self: "AcmeClient", resp: Response) -> None:
         """
         Get nonce from response, if present.
 
@@ -886,9 +887,10 @@ class AcmeClient(object):
         nonce = resp.headers.get(self.NONCE_HEADER)
         if nonce is None:
             return
+        s_nonce = nonce.decode()
         try:
-            logger.warning("Registering new nonce %s", nonce)
-            b_nonce = decode_b64jose(nonce)
+            logger.warning("Registering new nonce %s", s_nonce)
+            b_nonce = decode_b64jose(s_nonce)
             if b_nonce in self._nonces:
                 msg = "Duplicated nonce"
                 raise AcmeError(msg)
@@ -925,7 +927,7 @@ class AcmeClient(object):
         ).json_dumps(indent=2)
 
     @staticmethod
-    def _check_response(resp: httpx.Response) -> None:
+    def _check_response(resp: Response) -> None:
         """
         Check response and raise the errors when nessessary.
 
@@ -938,10 +940,10 @@ class AcmeClient(object):
             AcmeRateLimitError: When the server rejects the request
                 due to high request rate.
         """
-        if resp.status_code < BAD_REQUEST:
+        if resp.status < BAD_REQUEST:
             return
         try:
-            jdata = resp.json()
+            jdata = json.loads(resp.content)
         except ValueError as e:
             raise AcmeUndecodableError from e
         e_type = jdata.get("type", "")
@@ -950,10 +952,12 @@ class AcmeClient(object):
         if e_type == "urn:ietf:params:acme:error:rateLimited":
             raise AcmeRateLimitError
         if e_type == "urn:ietf:params:acme:error:unauthorized":
-            logger.error("Unauthorized: %s", jdata.get("detail", resp.text))
+            logger.error(
+                "Unauthorized: %s", jdata.get("detail", resp.content.decode())
+            )
             raise AcmeUnauthorizedError
         e_detail = jdata.get("detail", "")
-        msg = f"[{resp.status_code}] {e_type} {e_detail}"
+        msg = f"[{resp.status}] {e_type} {e_detail}"
         logger.error("Response error: %s", msg)
         raise AcmeError(msg)
 

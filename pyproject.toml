@@ -126,7 +126,7 @@ classifiers = [
 ]
 dependencies = [
   "cryptography>=45.0.7",
-  "httpx[http2]>=0.25",
+  "gufo-http>=0.6.0",
   "josepy>=2.1.0",
 ]
 description = "Python Automatic Certificate Management Environment (ACME) client"

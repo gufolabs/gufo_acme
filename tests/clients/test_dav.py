@@ -8,8 +8,6 @@
 import asyncio
 import os
 
-import httpx
-
 # Third-party modules
 import pytest
 
@@ -21,6 +19,7 @@ from gufo.acme.error import AcmeFulfillmentFailed
 from .utils import (
     EMAIL,
     LE_STAGE_DIRECTORY,
+    ResponseStub,
     get_csr_pem,
     not_set,
     not_set_reason,
@@ -73,6 +72,6 @@ def test_state():
 
 
 def test_invalid_response():
-    resp = httpx.Response(400)
+    resp = ResponseStub(status=400)
     with pytest.raises(AcmeFulfillmentFailed):
         DavAcmeClient._check_dav_response(resp)

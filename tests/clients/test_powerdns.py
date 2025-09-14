@@ -9,7 +9,6 @@ import asyncio
 import os
 
 # Third-party modules
-import httpx
 import pytest
 
 # Gufo ACME modules
@@ -20,6 +19,7 @@ from gufo.acme.error import AcmeFulfillmentFailed
 from .utils import (
     EMAIL,
     LE_STAGE_DIRECTORY,
+    ResponseStub,
     get_csr_pem,
     not_set,
     not_set_reason,
@@ -86,6 +86,6 @@ def test_normalize_url(url: str, expected: str) -> None:
 
 
 def test_invalid_response():
-    resp = httpx.Response(200)
+    resp = ResponseStub(status=200)
     with pytest.raises(AcmeFulfillmentFailed):
         PowerDnsAcmeClient._check_api_response(resp)

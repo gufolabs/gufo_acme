@@ -19,6 +19,7 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 ### Changed
 
 * josepy >= 2.1.0
+* httpx replaced with Gufo HTTP
 
 ## 0.5.1 - 2025-09-08
 

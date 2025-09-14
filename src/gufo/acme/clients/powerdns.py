@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: PowerDnsAcmeClient implementation
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 """A PowerDnsAcmeClient implementation."""
 
@@ -9,10 +9,10 @@
 import hashlib
 from typing import Any
 
-import httpx
-
 # Third-party modules
 from josepy.json_util import encode_b64jose
+
+from gufo.http import Response
 
 # Gufo ACME modules
 from ..error import AcmeFulfillmentFailed
@@ -54,8 +54,8 @@ class PowerDnsAcmeClient(AcmeClient):
         return url
 
     @staticmethod
-    def _check_api_response(resp: httpx.Response) -> None:
-        if resp.status_code != RESP_NO_CONTENT:
+    def _check_api_response(resp: Response) -> None:
+        if resp.status != RESP_NO_CONTENT:
             msg = f"Failed to fulfill: Server returned {resp}"
             logger.error(msg)
             raise AcmeFulfillmentFailed(msg)

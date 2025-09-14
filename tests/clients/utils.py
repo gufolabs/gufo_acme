@@ -1,12 +1,13 @@
 # ---------------------------------------------------------------------
 # CSR Proxy: Testing utilities
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 
 # Python modules
 import os
-from typing import Iterable
+from dataclasses import dataclass, field
+from typing import Dict, Iterable
 
 from josepy.jwk import JWKRSA
 
@@ -63,3 +64,10 @@ def get_csr_pem(domain: str) -> bytes:
     """Generate CSR for domain in PEM format."""
     private_key = AcmeClient.get_domain_private_key()
     return AcmeClient.get_domain_csr(domain, private_key)
+
+
+@dataclass
+class ResponseStub(object):
+    status: int
+    headers: Dict[str, bytes] = field(default_factory=dict)
+    content: bytes = b""

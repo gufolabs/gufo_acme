@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: DavAcmeClient implementation
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 """A DavAcmeClient implementation."""
 
@@ -9,11 +9,10 @@
 from typing import Any
 
 # Third-party modules
-import httpx
-
-from ..error import AcmeFulfillmentFailed
+from gufo.http import AuthBase, BasicAuth, Response
 
 # Gufo ACME modules
+from ..error import AcmeFulfillmentFailed
 from ..types import AcmeChallenge
 from .base import AcmeClient
 
@@ -47,7 +46,7 @@ class DavAcmeClient(AcmeClient):
         self.username = username
         self.password = password
 
-    def get_auth(self: "DavAcmeClient") -> httpx.Auth:
+    def get_auth(self: "DavAcmeClient") -> AuthBase:
         """
         Get Auth for request.
 
@@ -55,20 +54,20 @@ class DavAcmeClient(AcmeClient):
             Auth information to be sent along with
             the request.
         """
-        return httpx.BasicAuth(
-            username=self.username,
+        return BasicAuth(
+            user=self.username,
             password=self.password,
         )
 
     @staticmethod
-    def _check_dav_response(resp: httpx.Response) -> None:
+    def _check_dav_response(resp: Response) -> None:
         """
         Check DAV response.
 
         Raise an error if necessary.
         """
-        if resp.status_code > HTTP_MAX_VALID:
-            msg = f"Failed to put challenge: code {resp.status_code}"
+        if resp.status > HTTP_MAX_VALID:
+            msg = f"Failed to put challenge: code {resp.status}"
             raise AcmeFulfillmentFailed(msg)
 
     async def fulfill_http_01(

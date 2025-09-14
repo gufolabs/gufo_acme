@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # CSR Proxy: ACMEv2 client tests
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-25, Gufo Labs
 # ---------------------------------------------------------------------
 
 # Python modules
@@ -9,13 +9,11 @@ import asyncio
 import base64
 import json
 import os
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Union
-
-import httpx
 
 # Third-party modules
 import pytest
-from httpx import ConnectError, Response
 from josepy.jwk import JWKRSA
 
 # Gufo ACME modules
@@ -35,12 +33,14 @@ from gufo.acme.error import (
     AcmeUndecodableError,
 )
 from gufo.acme.types import AcmeChallenge, ExternalAccountBinding
+from gufo.http import Response
 
 from .utils import (
     EMAIL,
     GOOGLE_STAGE_DIRECTORY,
     KEY,
     LE_STAGE_DIRECTORY,
+    ResponseStub,
     get_csr_pem,
     not_set,
     not_set_reason,
@@ -233,7 +233,7 @@ class BuggyHttpClient(object):
 
     async def _blackhole(self):
         msg = "Connection failed"
-        raise ConnectError(msg)
+        raise ConnectionError(msg)
 
     async def get(self, url, *args, **kwargs: Dict[str, Any]):
         await self._blackhole()
@@ -379,7 +379,7 @@ def test_domain_to_identifiers(
 
 
 def test_check_response_err_no_json() -> None:
-    resp = Response(400, text="foobar")
+    resp = ResponseStub(status=400, content=b"foobar")
     with pytest.raises(AcmeUndecodableError):
         AcmeClient._check_response(resp)
 
@@ -403,7 +403,7 @@ def test_check_response_err_no_json() -> None:
     ],
 )
 def test_check_response_err(j, etype):
-    resp = Response(400, json=j)
+    resp = ResponseStub(status=400, content=json.dumps(j).encode())
     with pytest.raises(etype):
         AcmeClient._check_response(resp)
 
@@ -411,7 +411,9 @@ def test_check_response_err(j, etype):
 def test_nonce_from_response():
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
-    resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
+    resp = ResponseStub(
+        status=200, headers={"Replay-Nonce": b"oFvnlFP1wIhRlYS2jTaXbA"}
+    )
     client._nonce_from_response(resp)
     assert client._nonces == {
         b"\xa0[\xe7\x94S\xf5\xc0\x88Q\x95\x84\xb6\x8d6\x97l"
@@ -421,7 +423,7 @@ def test_nonce_from_response():
 def test_nonce_from_response_none():
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
-    resp = Response(200)
+    resp = ResponseStub(status=200)
     client._nonce_from_response(resp)
     assert not client._nonces
 
@@ -429,7 +431,7 @@ def test_nonce_from_response_none():
 def test_nonce_from_response_decode_error():
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
-    resp = Response(200, headers={"Replay-Nonce": "x"})
+    resp = ResponseStub(status=200, headers={"Replay-Nonce": b"x"})
     with pytest.raises(AcmeBadNonceError):
         client._nonce_from_response(resp)
 
@@ -437,7 +439,9 @@ def test_nonce_from_response_decode_error():
 def test_nonce_from_response_duplicated():
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     assert not client._nonces
-    resp = Response(200, headers={"Replay-Nonce": "oFvnlFP1wIhRlYS2jTaXbA"})
+    resp = ResponseStub(
+        status=200, headers={"Replay-Nonce": b"oFvnlFP1wIhRlYS2jTaXbA"}
+    )
     client._nonce_from_response(resp)
     with pytest.raises(AcmeError):
         client._nonce_from_response(resp)
@@ -587,13 +591,17 @@ def test_state2() -> None:
 
 
 def test_invalid_order_status() -> None:
-    resp = httpx.Response(200, json={"status": "invalid"})
+    resp = ResponseStub(
+        status=200, content=json.dumps({"status": "invalid"}).encode()
+    )
     with pytest.raises(AcmeCertificateError):
         AcmeClient._get_order_status(resp)
 
 
 def test_valid_order_status() -> None:
-    resp = httpx.Response(200, json={"status": "valid"})
+    resp = ResponseStub(
+        status=200, content=json.dumps({"status": "valid"}).encode()
+    )
     s = AcmeClient._get_order_status(resp)
     assert s == "valid"
 
