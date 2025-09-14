@@ -127,7 +127,7 @@ classifiers = [
 dependencies = [
   "cryptography>=45.0.7",
   "httpx[http2]>=0.25",
-  "josepy>=1.14",
+  "josepy>=2.1.0",
 ]
 description = "Python Automatic Certificate Management Environment (ACME) client"
 dynamic = ["version"]

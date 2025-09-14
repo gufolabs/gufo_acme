@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 To see unreleased changes, please see the [CHANGELOG on the master branch](https://github.com/gufolabs/gufo_acme/blob/master/CHANGELOG.md) guide.
 
+## [Upcoming]
+
+### Security
+
+* Bump cryptography >= 45.0.7 (due to security issues).
+
+### Changed
+
+* josepy >= 2.1.0
+
 ## 0.5.1 - 2025-09-08
 
 ### Security
