@@ -200,7 +200,7 @@ def test_already_registered() -> None:
 class BlackholeHttpClient(object):
     """An http client that always timed out."""
 
-    async def __aenter__(self: "BlackholeHttpClient") -> "BlackholeHttpClient":
+    async def __aenter__(self) -> "BlackholeHttpClient":
         """Asynchronous context manager entry."""
         return self
 

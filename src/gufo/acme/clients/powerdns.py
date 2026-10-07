@@ -37,7 +37,7 @@ class PowerDnsAcmeClient(AcmeClient):
     """
 
     def __init__(
-        self: "PowerDnsAcmeClient",
+        self,
         directory_url: str,
         *,
         api_url: str,
@@ -62,7 +62,7 @@ class PowerDnsAcmeClient(AcmeClient):
             raise AcmeFulfillmentFailed(msg)
 
     async def fulfill_dns_01(
-        self: "PowerDnsAcmeClient", domain: str, challenge: AcmeChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Fulfill dns-01 challenge.

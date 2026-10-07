@@ -30,7 +30,7 @@ class WebAcmeClient(AcmeClient):
     """
 
     def __init__(
-        self: "WebAcmeClient",
+        self,
         directory_url: str,
         *,
         path: Union[str, Path],
@@ -39,7 +39,7 @@ class WebAcmeClient(AcmeClient):
         super().__init__(directory_url, **kwargs)
         self.path = Path(path)
 
-    def _get_path(self: "WebAcmeClient", challenge: AcmeChallenge) -> Path:
+    def _get_path(self, challenge: AcmeChallenge) -> Path:
         """
         Get Path for challenge.
 
@@ -52,7 +52,7 @@ class WebAcmeClient(AcmeClient):
         return self.path / Path(challenge.token)
 
     async def fulfill_http_01(
-        self: "WebAcmeClient", domain: str, challenge: AcmeChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Perform http-01 fullfilment.
@@ -77,7 +77,7 @@ class WebAcmeClient(AcmeClient):
         return True
 
     async def clear_http_01(
-        self: "WebAcmeClient", domain: str, challenge: AcmeChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Remove provisioned token.
