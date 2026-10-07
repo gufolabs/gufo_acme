@@ -554,6 +554,7 @@ class AcmeClient(object):
             challenges=[
                 AcmeChallenge(type=d["type"], url=d["url"], token=d["token"])
                 for d in data["challenges"]
+                if "token" in d
             ],
         )
 
