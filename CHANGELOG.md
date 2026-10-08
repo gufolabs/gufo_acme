@@ -12,9 +12,18 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ## [Unreleased]
 
+### Added
+
+* Python 3.14 support
+
 ### Fixes
 
 * Skip unsupported ACME challenges without a token.
+
+### Removed
+
+* Python 3.9 support.
+* Python 3.10 support.
 
 ### Infrastructure
 

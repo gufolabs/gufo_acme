@@ -503,7 +503,9 @@ class AcmeClient(object):
         return AcmeOrder(
             authorizations=[
                 AcmeAuthorization(domain=i["value"], url=a)
-                for i, a in zip(identifiers, data["authorizations"])
+                for i, a in zip(
+                    identifiers, data["authorizations"], strict=False
+                )
             ],
             finalize=data["finalize"],
         )
