@@ -1,14 +1,14 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: WebAcmeClient implementation
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-26, Gufo Labs
 # ---------------------------------------------------------------------
 """A WebAcmeClient implementation."""
 
 # Python modules
 import os
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 # Gufo ACME modules
 from ..log import logger
@@ -33,7 +33,7 @@ class WebAcmeClient(AcmeClient):
         self,
         directory_url: str,
         *,
-        path: Union[str, Path],
+        path: str | Path,
         **kwargs: Any,
     ) -> None:
         super().__init__(directory_url, **kwargs)

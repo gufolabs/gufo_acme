@@ -1,12 +1,12 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: ACME Messages
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-26, Gufo Labs
 # ---------------------------------------------------------------------
 """ACME protocol JWS structures."""
 
 # Python modules
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 # Third-party modules
 from josepy.json_util import encode_b64jose, field
@@ -25,11 +25,11 @@ class AcmeHeader(Header):
         url: Request URL.
     """
 
-    nonce: Optional[bytes] = field(
+    nonce: bytes | None = field(
         "nonce", omitempty=True, encoder=encode_b64jose
     )
-    kid: Optional[str] = field("kid", omitempty=True)
-    url: Optional[str] = field("url", omitempty=True)
+    kid: str | None = field("kid", omitempty=True)
+    url: str | None = field("url", omitempty=True)
 
 
 class AcmeSignature(Signature):
@@ -53,15 +53,15 @@ class AcmeJWS(JWS):
 
     @classmethod
     def sign(  # type: ignore
-        cls: Type["AcmeJWS"],
+        cls: type["AcmeJWS"],
         payload: bytes,
         *,
         key: JWK,
         alg: JWASignature,
-        nonce: Optional[bytes] = None,
-        url: Optional[str] = None,
-        kid: Optional[str] = None,
-        **kwargs: Dict[str, Any],
+        nonce: bytes | None = None,
+        url: str | None = None,
+        kid: str | None = None,
+        **kwargs: dict[str, Any],
     ) -> JWS:
         """
         Sign a payload and return signed JWS.

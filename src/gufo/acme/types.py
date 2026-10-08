@@ -1,18 +1,17 @@
 # ---------------------------------------------------------------------
 # Gufo ACME: Types definitions
 # ---------------------------------------------------------------------
-# Copyright (C) 2023, Gufo Labs
+# Copyright (C) 2023-26, Gufo Labs
 # ---------------------------------------------------------------------
 
 """RFC-8555 compatible ACME protocol structures."""
 
 # Python modules
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
-class AcmeAuthorization(object):
+class AcmeAuthorization:
     """
     ACME Authorization resource.
 
@@ -26,7 +25,7 @@ class AcmeAuthorization(object):
 
 
 @dataclass
-class AcmeOrder(object):
+class AcmeOrder:
     """
     ACME order resource.
 
@@ -35,12 +34,12 @@ class AcmeOrder(object):
         finalize: URL to finalize the order.
     """
 
-    authorizations: List[AcmeAuthorization]
+    authorizations: list[AcmeAuthorization]
     finalize: str
 
 
 @dataclass
-class AcmeChallenge(object):
+class AcmeChallenge:
     """
     ACME challenge resource.
 
@@ -56,7 +55,7 @@ class AcmeChallenge(object):
 
 
 @dataclass
-class AcmeAuthorizationStatus(object):
+class AcmeAuthorizationStatus:
     """
     Authorization status response.
 
@@ -66,11 +65,11 @@ class AcmeAuthorizationStatus(object):
     """
 
     status: str
-    challenges: List[AcmeChallenge]
+    challenges: list[AcmeChallenge]
 
 
 @dataclass
-class AcmeDirectory(object):
+class AcmeDirectory:
     """
     ACME directory.
 
@@ -86,13 +85,13 @@ class AcmeDirectory(object):
     """
 
     new_account: str
-    new_nonce: Optional[str]
+    new_nonce: str | None
     new_order: str
     external_account_required: bool
 
 
 @dataclass
-class ExternalAccountBinding(object):
+class ExternalAccountBinding:
     """
     External account binding for .new_account() method.
 
