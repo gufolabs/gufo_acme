@@ -132,7 +132,7 @@ dynamic = ["version"]
 keywords = ["ACME", "Automatic Certificate Management Environment", "RFC8555"]
 license = "BSD-3-Clause"
 name = "gufo_acme"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 
 [project.optional-dependencies]
 docs = [
