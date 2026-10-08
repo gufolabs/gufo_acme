@@ -35,7 +35,7 @@ class DavAcmeClient(AcmeClient):
     """
 
     def __init__(
-        self: "DavAcmeClient",
+        self,
         directory_url: str,
         *,
         username: str,
@@ -46,7 +46,7 @@ class DavAcmeClient(AcmeClient):
         self.username = username
         self.password = password
 
-    def get_auth(self: "DavAcmeClient") -> AuthBase:
+    def get_auth(self) -> AuthBase:
         """
         Get Auth for request.
 
@@ -71,7 +71,7 @@ class DavAcmeClient(AcmeClient):
             raise AcmeFulfillmentFailed(msg)
 
     async def fulfill_http_01(
-        self: "DavAcmeClient", domain: str, challenge: AcmeChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> bool:
         """
         Perform http-01 fullfilment.
@@ -98,7 +98,7 @@ class DavAcmeClient(AcmeClient):
         return True
 
     async def clear_http_01(
-        self: "DavAcmeClient", domain: str, challenge: AcmeChallenge
+        self, domain: str, challenge: AcmeChallenge
     ) -> None:
         """
         Remove provisioned token.
