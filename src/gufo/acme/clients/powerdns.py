@@ -93,7 +93,7 @@ class PowerDnsAcmeClient(AcmeClient):
             # Set up the headers, including the API key for authentication
             headers = {
                 "X-API-Key": self.api_key.encode(),
-                "Content-Type": "application/json".encode(),
+                "Content-Type": b"application/json",
             }
             # Prepare the payload for the update
             update_payload = {

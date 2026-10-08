@@ -10,20 +10,9 @@ import asyncio
 import datetime
 import json
 import random
+from collections.abc import Coroutine, Iterable
 from types import TracebackType
-from typing import (
-    Any,
-    Coroutine,
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, TypeVar, cast
 
 # Third-party modules
 from cryptography import x509
@@ -78,7 +67,7 @@ CT = TypeVar("CT", bound="AcmeClient")
 HttpErrors = (HttpError, ConnectionError, TimeoutError)
 
 
-class AcmeClient(object):
+class AcmeClient:
     """
     ACME Client.
 
@@ -132,17 +121,17 @@ class AcmeClient(object):
         directory_url: str,
         *,
         key: JWK,
-        alg: Optional[JWASignature] = None,
-        account_url: Optional[str] = None,
-        timeout: Optional[float] = None,
-        user_agent: Optional[str] = None,
+        alg: JWASignature | None = None,
+        account_url: str | None = None,
+        timeout: float | None = None,
+        user_agent: str | None = None,
     ) -> None:
         self._directory_url = directory_url
-        self._directory: Optional[AcmeDirectory] = None
+        self._directory: AcmeDirectory | None = None
         self._key = key
         self._alg = alg or self.DEFAULT_SIGNATURE
         self._account_url = account_url
-        self._nonces: Set[bytes] = set()
+        self._nonces: set[bytes] = set()
         self._timeout = timeout or self.DEFAULT_TIMEOUT
         self._user_agent = user_agent or f"Gufo ACME/{__version__}"
 
@@ -160,9 +149,9 @@ class AcmeClient(object):
 
     async def __aexit__(
         self,
-        exc_t: Optional[Type[BaseException]],
-        exc_v: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_t: type[BaseException] | None,
+        exc_v: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Asynchronous context exit."""
         return
@@ -202,7 +191,7 @@ class AcmeClient(object):
         if self.is_bound():
             raise AcmeAlreadyRegistered
 
-    def _get_client(self, auth: Optional[AuthBase] = None) -> HttpClient:
+    def _get_client(self, auth: AuthBase | None = None) -> HttpClient:
         """
         Get a HTTP client instance.
 
@@ -220,7 +209,7 @@ class AcmeClient(object):
     async def _wait_for(fut: Coroutine[Any, Any, T], timeout: float) -> T:
         try:
             return await asyncio.wait_for(fut, timeout)
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             raise AcmeTimeoutError from e
 
     async def _get_directory(self) -> AcmeDirectory:
@@ -264,7 +253,7 @@ class AcmeClient(object):
         return self._directory
 
     @staticmethod
-    def _email_to_contacts(email: Union[str, Iterable[str]]) -> List[str]:
+    def _email_to_contacts(email: str | Iterable[str]) -> list[str]:
         """
         Convert email to list of contacts.
 
@@ -297,7 +286,7 @@ class AcmeClient(object):
 
     def _get_eab(
         self, external_binding: ExternalAccountBinding, url: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get externalAccountBinding field.
 
@@ -316,9 +305,9 @@ class AcmeClient(object):
 
     async def new_account(
         self,
-        email: Union[str, Iterable[str]],
+        email: str | Iterable[str],
         *,
-        external_binding: Optional[ExternalAccountBinding] = None,
+        external_binding: ExternalAccountBinding | None = None,
     ) -> str:
         """
         Create new account.
@@ -368,7 +357,7 @@ class AcmeClient(object):
         if d.external_account_required and not external_binding:
             raise AcmeExternalAccountRequred()
         # Prepare request
-        req: Dict[str, Any] = {
+        req: dict[str, Any] = {
             "termsOfServiceAgreed": True,
             "contact": contacts,
         }
@@ -426,8 +415,8 @@ class AcmeClient(object):
 
     @staticmethod
     def _domain_to_identifiers(
-        domain: Union[str, Iterable[str]],
-    ) -> List[Dict[str, str]]:
+        domain: str | Iterable[str],
+    ) -> list[dict[str, str]]:
         """
         Convert domain name to a list of order identifiers.
 
@@ -442,7 +431,7 @@ class AcmeClient(object):
             return [{"type": "dns", "value": domain}]
         return [{"type": "dns", "value": d} for d in domain]
 
-    async def new_order(self, domain: Union[str, Iterable[str]]) -> AcmeOrder:
+    async def new_order(self, domain: str | Iterable[str]) -> AcmeOrder:
         """
         Create new order.
 
@@ -777,9 +766,7 @@ class AcmeClient(object):
             self._nonce_from_response(r)
             return r
 
-    async def _post(
-        self, url: str, data: Optional[Dict[str, Any]]
-    ) -> Response:
+    async def _post(self, url: str, data: dict[str, Any] | None) -> Response:
         """
         Perform HTTP POST request.
 
@@ -807,7 +794,7 @@ class AcmeClient(object):
             return await self._post_once(url, data)
 
     async def _post_once(
-        self, url: str, data: Optional[Dict[str, Any]]
+        self, url: str, data: dict[str, Any] | None
     ) -> Response:
         """
         Perform a single HTTP POST request.
@@ -900,9 +887,9 @@ class AcmeClient(object):
 
     def _to_jws(
         self,
-        data: Optional[Dict[str, Any]],
+        data: dict[str, Any] | None,
         *,
-        nonce: Optional[bytes],
+        nonce: bytes | None,
         url: str,
     ) -> str:
         """
@@ -1240,7 +1227,7 @@ class AcmeClient(object):
         # Build certificate
         subject = load_csr.subject
         issuer = subject  # Self-signed
-        now = datetime.datetime.now(datetime.timezone.utc)
+        now = datetime.datetime.now(datetime.UTC)
         cert_builder = (
             x509.CertificateBuilder()
             .subject_name(subject)
@@ -1279,7 +1266,7 @@ class AcmeClient(object):
         return json.dumps(state, indent=2).encode()
 
     @classmethod
-    def from_state(cls: Type[CT], state: bytes, **kwargs: Any) -> CT:
+    def from_state(cls: type[CT], state: bytes, **kwargs: Any) -> CT:
         """
         Restore AcmeClient from the state.
 

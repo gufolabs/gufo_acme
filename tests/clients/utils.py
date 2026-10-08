@@ -6,9 +6,10 @@
 
 # Python modules
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Dict, Iterable
 
+# Third-party modules
 from josepy.jwk import JWKRSA
 
 # Gufo ACME modules
@@ -67,7 +68,7 @@ def get_csr_pem(domain: str) -> bytes:
 
 
 @dataclass
-class ResponseStub(object):
+class ResponseStub:
     status: int
-    headers: Dict[str, bytes] = field(default_factory=dict)
+    headers: dict[str, bytes] = field(default_factory=dict)
     content: bytes = b""

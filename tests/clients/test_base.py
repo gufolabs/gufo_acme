@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------
 # CSR Proxy: ACMEv2 client tests
 # ---------------------------------------------------------------------
-# Copyright (C) 2023-25, Gufo Labs
+# Copyright (C) 2023-26, Gufo Labs
 # ---------------------------------------------------------------------
 
 # Python modules
@@ -9,7 +9,7 @@ import asyncio
 import base64
 import json
 import os
-from typing import Any, Dict, List, Union
+from typing import Any
 
 # Third-party modules
 import pytest
@@ -197,7 +197,7 @@ def test_already_registered() -> None:
     asyncio.run(inner())
 
 
-class BlackholeHttpClient(object):
+class BlackholeHttpClient:
     """An http client that always timed out."""
 
     async def __aenter__(self) -> "BlackholeHttpClient":
@@ -210,17 +210,17 @@ class BlackholeHttpClient(object):
     async def _blackhole(self) -> None:
         await asyncio.sleep(100.0)
 
-    async def get(self, url: str, *args, **kwargs: Dict[str, Any]):
+    async def get(self, url: str, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
-    async def head(self, url: str, *args, **kwargs: Dict[str, Any]):
+    async def head(self, url: str, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
-    async def post(self, url: str, *args, **kwargs: Dict[str, Any]):
+    async def post(self, url: str, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
 
-class BuggyHttpClient(object):
+class BuggyHttpClient:
     """An http client that always raises ConnectError."""
 
     async def __aenter__(self) -> "BuggyHttpClient":
@@ -234,13 +234,13 @@ class BuggyHttpClient(object):
         msg = "Connection failed"
         raise ConnectionError(msg)
 
-    async def get(self, url, *args, **kwargs: Dict[str, Any]):
+    async def get(self, url, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
-    async def head(self, url, *args, **kwargs: Dict[str, Any]):
+    async def head(self, url, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
-    async def post(self, url, *args, **kwargs: Dict[str, Any]):
+    async def post(self, url, *args, **kwargs: dict[str, Any]):
         await self._blackhole()
 
 
@@ -252,7 +252,7 @@ class BlackholeAcmeClient(AcmeClient):
 
 
 class BlackholeAcmeClientBadNonce(BlackholeAcmeClient):
-    async def _post_once(self, url: str, data: Dict[str, Any]) -> Response:
+    async def _post_once(self, url: str, data: dict[str, Any]) -> Response:
         raise AcmeBadNonceError()
 
 
@@ -349,7 +349,7 @@ def test_post_retry():
     ],
 )
 def test_email_to_contacts(
-    email: Union[str, List[str]], expected: List[str]
+    email: str | list[str], expected: list[str]
 ) -> None:
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     r = client._email_to_contacts(email)
@@ -370,7 +370,7 @@ def test_email_to_contacts(
     ],
 )
 def test_domain_to_identifiers(
-    domain: Union[str, List[str]], expected: List[str]
+    domain: str | list[str], expected: list[str]
 ) -> None:
     client = AcmeClient(LE_STAGE_DIRECTORY, key=KEY)
     r = client._domain_to_identifiers(domain)
