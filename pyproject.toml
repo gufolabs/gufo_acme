@@ -161,6 +161,7 @@ file = "README.md"
 [project.urls]
 "Bug Tracker" = "https://github.com/gufolabs/gufo_acme/issues"
 Changelog = "https://github.com/gufolabs/gufo_acme/blob/master/CHANGELOG.md"
+Discord = "https://discord.gg/nfTsFDtVc"
 Documentation = "https://docs.gufolabs.com/gufp_acme/"
 Homepage = "https://github.com/gufolabs/gufo_acme/"
 "Source Code" = "https://github.com/gufolabs/gufo_acme/"
