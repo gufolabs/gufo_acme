@@ -14,7 +14,8 @@ To see unreleased changes, please see the [CHANGELOG on the master branch](https
 
 ### Added
 
-* Python 3.14 support
+* Python 3.14 support.
+* - Add `run-dev` script for running commands in the devcontainer.
 
 ### Fixes
 
